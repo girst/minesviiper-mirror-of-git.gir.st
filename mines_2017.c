@@ -169,6 +169,7 @@ int main (int argc, char** argv) {
 	f.w = 30;
 	f.h = 16;
 	f.m = 99;
+	f.c = NULL; /*to not free() array before it is allocated*/
 
 	op.scheme = &symbols_mono;
 	op.mode = FLAG;
@@ -201,7 +202,8 @@ int main (int argc, char** argv) {
 			"hjkl: move 1 left/down/up/right\n"
 			"bduw: move 5 left/down/up/right\n"
 			"left mouse/space: open/choord\n"
-			"right mouse/i: flag/unflag\n", argv[0]);
+			"right mouse/i: flag/unflag\n"
+			":D / r: start a new game\n", argv[0]);
 			return 1;
 		}
 	}
@@ -277,6 +279,9 @@ newgame:
 			if (f.p[1] < 0 || f.p[1] >= f.w || 
 			    f.p[0] < 0 || f.p[1] >= f.h) break; /*out of bound*/
 			/* fallthrough */
+		case 'r': /* start a new game */
+			free_field ();
+			goto newgame;
 		case 'i':
 			if (f.c[f.p[0]][f.p[1]].o == CLOSED)
 				flag_square (f.p[0], f.p[1]);
@@ -616,6 +621,7 @@ unalloc:
 }
 
 void free_field () {
+	if (f.c == NULL) return; /* quit() could be called before alloc_array() */
 	for (int l = 0; l < f.h; l++) {
 		free (f.c[l]);
 	}
