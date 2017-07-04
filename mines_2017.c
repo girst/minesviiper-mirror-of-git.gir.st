@@ -1,5 +1,5 @@
 /*******************************************************************************
- minesviiper 0.3.11
+ minesviiper 0.3.14
  By Tobias Girstmair, 2015 - 2017
 
  ./minesviiper -w 16 -h 16 -m 40
@@ -201,9 +201,11 @@ int main (int argc, char** argv) {
 			"\n"
 			"hjkl: move 1 left/down/up/right\n"
 			"bduw: move 5 left/down/up/right\n"
+			"^Gg$: move to the left/bottom/top/right\n"
 			"left mouse/space: open/choord\n"
 			"right mouse/i: flag/unflag\n"
-			":D / r: start a new game\n", argv[0]);
+			":D / r: start a new game\n"
+			"q: quit\n", argv[0]);
 			return 1;
 		}
 	}
