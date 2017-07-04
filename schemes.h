@@ -35,6 +35,8 @@ struct minescheme {
 	char* border_bottom_r;
 
 	int cell_width;
+	char* init_seq;
+	char* reset_seq;
 };
 
 struct minescheme symbols_mono = {
@@ -132,5 +134,7 @@ struct minescheme symbols_doublewidth = {
 	.border_bottom_r = "\x6a",
 
 	.cell_width = 1,
+	.init_seq = "\033(0", /* enable DEC Special Graphics Character Set */
+	.reset_seq = "\033(B", /* enable DEC Multinational Character Set (TODO: check) */
 };
 #endif

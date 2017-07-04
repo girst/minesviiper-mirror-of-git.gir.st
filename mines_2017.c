@@ -228,10 +228,14 @@ newgame:
 
 	printf ("\033[H\033[J");
 
+	/* swich charset, if necessary */
+	if (op.scheme->init_seq != NULL) print (op.scheme->init_seq);
+
 	show_minefield (NORMAL);
 
 	/* enable mouse, hide cursor */
 	printf ("\033[?1000h\033[?25l");
+
 	while (1) {
 		int l, c;
 		int action;
@@ -388,6 +392,8 @@ void quit () {
 	move(f.h+LINE_OFFSET+2, 0);
 	/* disable mouse, show cursor */
 	printf ("\033[?9l\033[?25h");
+	/* reset charset, if necessary */
+	if (op.scheme && op.scheme->reset_seq) print (op.scheme->reset_seq);
 	free_field ();
 	restore_term_mode(saved_term_mode);
 }
