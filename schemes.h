@@ -107,7 +107,7 @@ struct minescheme symbols_doublewidth = {
 	/* vt220 multilingual character set, see http://vt100.net/docs/vt220-rm/table2-4.html */
 	.number = {" ", "1", "2", "3", "4", "5", "6", "7", "8"},
 	.field_closed = "\x61",
-	.field_flagged = "F",
+	.field_flagged = "!",
 	.field_question = "?",
 	.mouse_highlight = "@",
 	.mine_normal = "*",
