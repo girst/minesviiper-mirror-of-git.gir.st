@@ -102,33 +102,34 @@ struct minescheme symbols_col1 = {
 };
 
 struct minescheme symbols_doublewidth = {
+	/* vt220 multilingual character set, see http://vt100.net/docs/vt220-rm/table2-4.html */
 	.number = {" ", "1", "2", "3", "4", "5", "6", "7", "8"},
-	.field_closed = "░",
-	.field_flagged = "▒",
+	.field_closed = "\x61",
+	.field_flagged = "F",
 	.field_question = "?",
-	.mouse_highlight = "▓",
+	.mouse_highlight = "@",
 	.mine_normal = "*",
 	.mine_death = "#",
 	.mine_wrongf = "/",
 	.mine_wrongq = "\\",
 
-	.border_top_l = "\033#6╔",
-	.border_top_m = "═",
-	.border_top_r = "╗",
+	.border_top_l = "\033#6\x6c",
+	.border_top_m = "\x71",
+	.border_top_r = "\x6b",
 
-	.border_status_l = "\033#6║",
-	.border_status_r = "║",
+	.border_status_l = "\033#6\x78",
+	.border_status_r = "\x78",
 
-	.border_spacer_l = "\033#6╟",
-	.border_spacer_m = "─",
-	.border_spacer_r = "╢",
+	.border_spacer_l = "\033#6\x74",
+	.border_spacer_m = "\x71",
+	.border_spacer_r = "\x75",
 
-	.border_field_l = "\033#6║",
-	.border_field_r = "║",
+	.border_field_l = "\033#6\x78",
+	.border_field_r = "\x78",
 
-	.border_bottom_l = "\033#6╚",
-	.border_bottom_m = "═",
-	.border_bottom_r = "╝",
+	.border_bottom_l = "\033#6\x6d",
+	.border_bottom_m = "\x71",
+	.border_bottom_r = "\x6a",
 
 	.cell_width = 1,
 };
