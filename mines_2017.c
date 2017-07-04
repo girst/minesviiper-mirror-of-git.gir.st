@@ -342,6 +342,30 @@ newgame:
 			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
 			fputs (op.scheme->mouse_highlight, stdout);
 			break;
+		case '^':
+			partial_show_minefield (f.p[0], f.p[1], NORMAL);
+			f.p[1] = 0;
+			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
+			fputs (op.scheme->mouse_highlight, stdout);
+			break;
+		case '$':
+			partial_show_minefield (f.p[0], f.p[1], NORMAL);
+			f.p[1] = f.w-1;
+			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
+			fputs (op.scheme->mouse_highlight, stdout);
+			break;
+		case 'g':
+			partial_show_minefield (f.p[0], f.p[1], NORMAL);
+			f.p[0] = 0;
+			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
+			fputs (op.scheme->mouse_highlight, stdout);
+			break;
+		case 'G':
+			partial_show_minefield (f.p[0], f.p[1], NORMAL);
+			f.p[0] = f.h-1;
+			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
+			fputs (op.scheme->mouse_highlight, stdout);
+			break;
 		case 'q':
 			goto quit;
 		case '\014': /* Ctrl-L -- redraw */
