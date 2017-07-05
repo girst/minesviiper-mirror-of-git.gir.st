@@ -405,6 +405,9 @@ lose:
 		   (mouse[1]==f.w+COL_OFFSET || mouse[1]==f.w+COL_OFFSET+1)) {
 			free_field ();
 			goto newgame;
+		} else if (gotaction == 'r') {
+			free_field ();
+			goto newgame;
 		} else if (gotaction == 'q') {
 			goto quit;
 		}
