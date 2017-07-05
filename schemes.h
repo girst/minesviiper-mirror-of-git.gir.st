@@ -104,16 +104,17 @@ struct minescheme symbols_col1 = {
 };
 
 struct minescheme symbols_doublewidth = {
-	/* vt220 multilingual character set, see http://vt100.net/docs/vt220-rm/table2-4.html */
-	.number = {" ", "1", "2", "3", "4", "5", "6", "7", "8"},
+	/* vt220 multilingual character set,
+	see http://vt100.net/docs/vt220-rm/table2-4.html */
+	.number = {" ", "\033[1m1\033[0m", "\033[1m2\033[0m", "\033[1m3\033[0m", "\033[1m4\033[0m", "\033[1m5\033[0m", "\033[1m6\033[0m", "\033[1m7\033[0m", "\033[1m8\033[0m"},
 	.field_closed = "\x61",
-	.field_flagged = "!",
-	.field_question = "?",
-	.mouse_highlight = "@",
-	.mine_normal = "*",
-	.mine_death = "#",
-	.mine_wrongf = "/",
-	.mine_wrongq = "\\",
+	.field_flagged = "\033[1m!\033[0m",
+	.field_question = "\033[1m?\033[0m",
+	.mouse_highlight = "\033[5m@\033[0m",
+	.mine_normal = "\033[1m*\033[0m",
+	.mine_death = "\033[1m#\033[0m",
+	.mine_wrongf = "\033[1m/\033[0m",
+	.mine_wrongq = "\033[1m\\\033[0m",
 
 	.border_top_l = "\033#6\x6c",
 	.border_top_m = "\x71",
