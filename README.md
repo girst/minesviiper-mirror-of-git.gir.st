@@ -6,6 +6,9 @@ controlled by either `vi` style keybindings, or the mouse.
 Multiple character and color schemes are available, but more can be added
 easily. 
 
+Complete documentation and screenshots can be found on the
+[**Homepage**](https://gir.st/mines.htm). 
+
 ## Keybindings and mouse
 
 | Key         | Action                    |
