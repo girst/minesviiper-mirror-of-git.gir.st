@@ -285,13 +285,13 @@ newgame:
 			if (f.p[1] < 0 || f.p[1] >= f.w || 
 			    f.p[0] < 0 || f.p[1] >= f.h) break; /*out of bound*/
 			/* fallthrough */
-		case 'r': /* start a new game */
-			free_field ();
-			goto newgame;
 		case 'i':
 			if (f.c[f.p[0]][f.p[1]].o == CLOSED)
 				flag_square (f.p[0], f.p[1]);
 			break;
+		case 'r': /* start a new game */
+			free_field ();
+			goto newgame;
 		case 'h':
 			partial_show_minefield (f.p[0], f.p[1], NORMAL);
 			if (f.p[1] > 0)   f.p[1]--;
