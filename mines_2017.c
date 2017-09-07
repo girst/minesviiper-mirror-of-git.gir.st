@@ -33,6 +33,7 @@
 
 #define MIN(a,b) (a>b?b:a)
 #define MAX(a,b) (a>b?a:b)
+#define CLAMP(a,m,M) (a<m?m:(a>M?M:a))
 #define printm(num, str) for (int i = 0; i < num; i++) fputs (str, stdout)
 #define print(str) fputs (str, stdout)
 
@@ -44,6 +45,7 @@ struct minecell {
 };
 struct minefield {
 	struct minecell **c;
+	//TODO: rename w, h to L, C
 	int w; /* width */
 	int h; /* height */
 	int m; /* number of mines */
@@ -60,6 +62,7 @@ struct opt {
 
 void fill_minefield (int, int);
 void move (int, int);
+void set_cursor_pos (int, int);
 int getch (unsigned char*);
 int getctrlseq (unsigned char*);
 int everything_opened ();
@@ -285,89 +288,25 @@ newgame:
 			if (f.p[1] < 0 || f.p[1] >= f.w || 
 			    f.p[0] < 0 || f.p[1] >= f.h) break; /*out of bound*/
 			/* fallthrough */
-		case 'i':
-			if (f.c[f.p[0]][f.p[1]].o == CLOSED)
-				flag_square (f.p[0], f.p[1]);
-			break;
+		case 'i': flag_square (f.p[0], f.p[1]); break;
+		#define BM BIG_MOVE
+		case 'h': set_cursor_pos (f.p[0],    f.p[1]-1 ); break;
+		case 'j': set_cursor_pos (f.p[0]+1,  f.p[1]   ); break;
+		case 'k': set_cursor_pos (f.p[0]-1,  f.p[1]   ); break;
+		case 'l': set_cursor_pos (f.p[0],    f.p[1]+1 ); break;
+		case 'w': set_cursor_pos (f.p[0],    f.p[1]+BM); break;
+		case 'b': set_cursor_pos (f.p[0],    f.p[1]-BM); break;
+		case 'u': set_cursor_pos (f.p[0]-BM, f.p[1]   ); break;
+		case 'd': set_cursor_pos (f.p[0]+BM, f.p[1]   ); break;
+		case '0': /* fallthrough */
+		case '^': set_cursor_pos (f.p[0],    0        ); break;
+		case '$': set_cursor_pos (f.p[0],    f.w-1    ); break;
+		case 'g': set_cursor_pos (0,         f.p[1]   ); break;
+		case 'G': set_cursor_pos (f.h-1,     f.p[1]   ); break;
+		#undef BM
 		case 'r': /* start a new game */
 			free_field ();
 			goto newgame;
-		case 'h':
-			partial_show_minefield (f.p[0], f.p[1], NORMAL);
-			if (f.p[1] > 0)   f.p[1]--;
-			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-			fputs (op.scheme->mouse_highlight, stdout);
-			break;
-		case 'j':
-			partial_show_minefield (f.p[0], f.p[1], NORMAL);
-			if (f.p[0] < f.h-1) f.p[0]++;
-			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-			fputs (op.scheme->mouse_highlight, stdout);
-			break;
-		case 'k':
-			partial_show_minefield (f.p[0], f.p[1], NORMAL);
-			if (f.p[0] > 0)   f.p[0]--;
-			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-			fputs (op.scheme->mouse_highlight, stdout);
-			break;
-		case 'l':
-			partial_show_minefield (f.p[0], f.p[1], NORMAL);
-			if (f.p[1] < f.w-1) f.p[1]++;
-			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-			fputs (op.scheme->mouse_highlight, stdout);
-			break;
-		case 'w':
-			partial_show_minefield (f.p[0], f.p[1], NORMAL);
-			f.p[1] += BIG_MOVE;
-			if (f.p[1] >= f.w) f.p[1] = f.w-1;
-			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-			fputs (op.scheme->mouse_highlight, stdout);
-			break;
-		case 'b':
-			partial_show_minefield (f.p[0], f.p[1], NORMAL);
-			f.p[1] -= BIG_MOVE;
-			if (f.p[1] < 0)   f.p[1] = 0;
-			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-			fputs (op.scheme->mouse_highlight, stdout);
-			break;
-		case 'u':
-			partial_show_minefield (f.p[0], f.p[1], NORMAL);
-			f.p[0] -= BIG_MOVE;
-			if (f.p[0] < 0)   f.p[0] = 0;
-			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-			fputs (op.scheme->mouse_highlight, stdout);
-			break;
-		case 'd':
-			partial_show_minefield (f.p[0], f.p[1], NORMAL);
-			f.p[0] += BIG_MOVE;
-			if (f.p[0] >= f.h-1) f.p[0] = f.h-1;
-			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-			fputs (op.scheme->mouse_highlight, stdout);
-			break;
-		case '^':
-			partial_show_minefield (f.p[0], f.p[1], NORMAL);
-			f.p[1] = 0;
-			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-			fputs (op.scheme->mouse_highlight, stdout);
-			break;
-		case '$':
-			partial_show_minefield (f.p[0], f.p[1], NORMAL);
-			f.p[1] = f.w-1;
-			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-			fputs (op.scheme->mouse_highlight, stdout);
-			break;
-		case 'g':
-			partial_show_minefield (f.p[0], f.p[1], NORMAL);
-			f.p[0] = 0;
-			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-			fputs (op.scheme->mouse_highlight, stdout);
-			break;
-		case 'G':
-			partial_show_minefield (f.p[0], f.p[1], NORMAL);
-			f.p[0] = f.h-1;
-			move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-			fputs (op.scheme->mouse_highlight, stdout);
-			break;
 		case 'q':
 			goto quit;
 		case '\014': /* Ctrl-L -- redraw */
@@ -513,6 +452,7 @@ int uncover_square (int l, int c) {
 }
 
 void flag_square (int l, int c) {
+	if (f.c[l][c].o != CLOSED) return;
 	/* cycles through flag/quesm/noflag (uses op.mode to detect which ones 
 	are allowed) */
 	f.c[l][c].f = (f.c[l][c].f + 1) % (op.mode + 1);
@@ -550,6 +490,16 @@ void fill_minefield (int l, int c) {
 
 void move (int line, int col) {
 	printf ("\033[%d;%dH", line+1, col+1);
+}
+
+/* absolute coordinates! */
+void set_cursor_pos (int l, int c) {
+	partial_show_minefield (f.p[0], f.p[1], NORMAL);
+	/* update f.p */
+	f.p[0] = CLAMP(l, 0, f.h-1);
+	f.p[1] = CLAMP(c, 0, f.w-1);
+	move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
+	fputs (op.scheme->mouse_highlight, stdout);
 }
 
 void partial_show_minefield (int l, int c, int mode) {
