@@ -72,6 +72,7 @@ void show_minefield (int);
 int get_neighbours (int, int, int);
 int uncover_square (int, int);
 void flag_square (int, int);
+void quesm_square (int, int);
 int choord_square (int, int);
 struct minecell** alloc_array (int, int);
 void free_field ();
@@ -289,6 +290,7 @@ newgame:
 			    f.p[0] < 0 || f.p[1] >= f.h) break; /*out of bound*/
 			/* fallthrough */
 		case 'i': flag_square (f.p[0], f.p[1]); break;
+		case '?':quesm_square (f.p[0], f.p[1]); break;
 		#define BM BIG_MOVE
 		case 'h': set_cursor_pos (f.p[0],    f.p[1]-1 ); break;
 		case 'j': set_cursor_pos (f.p[0]+1,  f.p[1]   ); break;
@@ -425,6 +427,7 @@ int choord_square (int line, int col) {
 
 int uncover_square (int l, int c) {
 	f.c[l][c].o = OPENED;
+	f.c[l][c].f = NOFLAG; /* must not be QUESM, otherwise rendering issues */
 	partial_show_minefield (l, c, NORMAL);
 
 	if (f.c[l][c].m) {
@@ -461,6 +464,15 @@ void flag_square (int l, int c) {
 	partial_show_minefield (l, c, NORMAL);
 	move (1, op.scheme->cell_width);
 	printf ("[%03d]", f.f);
+}
+
+void quesm_square (int l, int c) {
+	/* toggle question mark / none. won't turn flags into question marks.
+	unlike flag_square, this function doesn't respect `-q'. */
+	if      (f.c[l][c].o != CLOSED) return;
+	else if (f.c[l][c].f == NOFLAG) f.c[l][c].f = QUESM;
+	else if (f.c[l][c].f == QUESM)  f.c[l][c].f = NOFLAG;
+	partial_show_minefield (l, c, NORMAL);
 }
 
 void fill_minefield (int l, int c) {
