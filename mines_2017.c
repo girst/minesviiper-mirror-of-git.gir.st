@@ -232,6 +232,9 @@ newgame:
 	int is_newgame = 1;
 	int cheatmode = 0;
 
+	/* switch to alternate screen */
+	printf ("\033[?47h");
+	/* reset cursor, clear screen */
 	printf ("\033[H\033[J");
 
 	/* swich charset, if necessary */
@@ -287,7 +290,7 @@ newgame:
 			f.p[0] = screen2field_l (mouse[2]);
 			f.p[1] = screen2field_c (mouse[1]);
 			if (f.p[1] < 0 || f.p[1] >= f.w || 
-			    f.p[0] < 0 || f.p[1] >= f.h) break; /*out of bound*/
+			    f.p[0] < 0 || f.p[0] >= f.h) break; /*out of bound*/
 			/* fallthrough */
 		case 'i': flag_square (f.p[0], f.p[1]); break;
 		case '?':quesm_square (f.p[0], f.p[1]); break;
@@ -364,6 +367,8 @@ void quit () {
 	printf ("\033[?9l\033[?25h");
 	/* reset charset, if necessary */
 	if (op.scheme && op.scheme->reset_seq) print (op.scheme->reset_seq);
+	/* revert to primary screen */
+	printf ("\033[?47l");
 	free_field ();
 	restore_term_mode(saved_term_mode);
 }
@@ -618,7 +623,7 @@ unalloc:
 }
 
 void free_field () {
-	if (f.c == NULL) return; /* quit() could be called before alloc_array() */
+	if (f.c == NULL) return;
 	for (int l = 0; l < f.h; l++) {
 		free (f.c[l]);
 	}
