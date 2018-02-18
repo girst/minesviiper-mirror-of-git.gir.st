@@ -17,6 +17,7 @@
 
 
 #define _POSIX_C_SOURCE 2 /*for getopt, sigaction in c99*/
+#include <ctype.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,6 +60,11 @@ struct opt {
 	struct minescheme* scheme;
 	int mode; /* allow flags? quesm? */
 } op;
+
+struct line_col {
+	int l;
+	int c;
+};
 
 void fill_minefield (int, int);
 void move (int, int);
@@ -231,6 +237,8 @@ newgame:
 
 	int is_newgame = 1;
 	int cheatmode = 0;
+	struct line_col markers[26];
+	for (int i=26; i; markers[--i].l = -1);
 
 	/* switch to alternate screen */
 	printf ("\033[?47h");
@@ -309,6 +317,19 @@ newgame:
 		case 'g': set_cursor_pos (0,         f.p[1]   ); break;
 		case 'G': set_cursor_pos (f.h-1,     f.p[1]   ); break;
 		#undef BM
+		case 'm':
+			action = tolower(getch(mouse));
+			if (action < 'a' || action > 'z') break;/*out of bound*/
+			markers[action-'a'].l = f.p[0];
+			markers[action-'a'].c = f.p[1];
+			break;
+		case'\'': /* fallthrough */
+		case '`':
+			action = tolower(getch(mouse));
+			if (action < 'a' || action > 'z' /* out of bound or */
+			    || markers[action-'a'].l == -1) break; /* unset */
+			set_cursor_pos (markers[action-'a'].l, markers[action-'a'].c);
+			break;
 		case 'r': /* start a new game */
 			free_field ();
 			goto newgame;
