@@ -61,6 +61,8 @@ struct opt {
 	int mode; /* allow flags? quesm? */
 } op;
 
+int alt_screen = 0;
+
 struct line_col {
 	int l;
 	int c;
@@ -187,27 +189,25 @@ int main (int argc, char** argv) {
 	/* parse options */
 	int optget;
 	opterr = 0; /* don't print message on unrecognized option */
-	while ((optget = getopt (argc, argv, "+w:h:m:nfqcdx")) != -1) {
+	while ((optget = getopt (argc, argv, "+hnfqcdx")) != -1) {
 		switch (optget) {
-		case 'w': f.w        = atoi (optarg); break;
-		case 'h': f.h        = atoi (optarg); break;
-		case 'm': f.m        = atoi (optarg); break;
 		case 'n': op.mode    = NOFLAG; break;
 		case 'f': op.mode    = FLAG; break; /*default*/
 		case 'q': op.mode    = QUESM; break;
 		case 'c': op.scheme  = &symbols_col1; break;
 		case 'd': op.scheme  = &symbols_doublewidth; break;
-		case '?':
-			fprintf (stderr, "%s [OPTIONS]\n"
+		case 'h':
+		default:
+			fprintf (stderr, "%s [OPTIONS] [FIELDSPEC]\n"
 			"OPTIONS:\n"
-			"    w(idth)\n"
-			"    h(eight)\n"
-			"    m(ines)\n"
 			"    n(o flagging)\n"
 			"    f(lagging)\n"
 			"    q(uestion marks)\n"
 			"    c(olored symbols)\n"
 			"    d(oublewidth symbols)\n"
+			"FIELDSPEC:\n"
+			"    WxHxM (width 'x' height 'x' mines)\n"
+			"    defaults to 30x16x99\n"
 			"\n"
 			"hjkl: move 1 left/down/up/right\n"
 			"bduw: move 5 left/down/up/right\n"
@@ -216,10 +216,13 @@ int main (int argc, char** argv) {
 			"right mouse/i: flag/unflag\n"
 			":D / r: start a new game\n"
 			"q: quit\n", argv[0]);
-			return 1;
+			_exit(0);
 		}
 	}
 	/* end parse options*/
+	if (optind < argc) {
+		sscanf (argv[optind], "%dx%dx%d", &(f.w), &(f.h), &(f.m));
+	}
 	/* check boundaries */
 	if (f.m > (f.w-1) * (f.h-1)) {
 		f.m = (f.w-1) * (f.h-1);
@@ -242,6 +245,7 @@ newgame:
 
 	/* switch to alternate screen */
 	printf ("\033[?47h");
+	alt_screen = 1;
 	/* reset cursor, clear screen */
 	printf ("\033[H\033[J");
 
@@ -389,7 +393,7 @@ void quit () {
 	/* reset charset, if necessary */
 	if (op.scheme && op.scheme->reset_seq) print (op.scheme->reset_seq);
 	/* revert to primary screen */
-	printf ("\033[?47l");
+	if (alt_screen) printf ("\033[?47l");
 	free_field ();
 	restore_term_mode(saved_term_mode);
 }
