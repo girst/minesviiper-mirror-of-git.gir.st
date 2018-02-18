@@ -387,7 +387,7 @@ quit:
 }
 
 void quit () {
-	move(f.h+LINE_OFFSET+2, 0);
+	move(0,0); //move(f.h+LINE_OFFSET+2, 0);
 	/* disable mouse, show cursor */
 	printf ("\033[?9l\033[?25h");
 	/* reset charset, if necessary */
