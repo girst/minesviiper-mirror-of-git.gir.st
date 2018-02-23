@@ -70,7 +70,7 @@ struct line_col {
 
 void fill_minefield (int, int);
 void move (int, int);
-void set_cursor_pos (int, int);
+void cursor_move (int, int);
 int getch (unsigned char*);
 int getctrlseq (unsigned char*);
 int everything_opened ();
@@ -276,15 +276,16 @@ newgame:
 		action = getch(mouse);
 		switch (action) {
 		case ' ':
-			switch (space_mode) {
-			case MODE_OPEN:
+			if (space_mode == MODE_OPEN ||
+			    f.c[f.p[0]][f.p[1]].o == OPENED) {
 				switch (do_uncover(&is_newgame)) {
 					case GAME_LOST: goto lose;
 					case GAME_WON:  goto win;
 				}
-				break;
-			case MODE_FLAG:  flag_square (f.p[0], f.p[1]); break;
-			case MODE_QUESM:quesm_square (f.p[0], f.p[1]); break;
+			} else if (space_mode == MODE_FLAG) {
+				flag_square (f.p[0], f.p[1]);
+			} else if (space_mode ==  MODE_QUESM) {
+				quesm_square (f.p[0], f.p[1]);
 			}
 			break;
 		case 'a': space_mode = (space_mode+1)%(op.mode+1); break;
@@ -316,19 +317,19 @@ newgame:
 		case 'i': flag_square (f.p[0], f.p[1]); break;
 		case '?':quesm_square (f.p[0], f.p[1]); break;
 		#define BM BIG_MOVE
-		case 'h': set_cursor_pos (f.p[0],    f.p[1]-1 ); break;
-		case 'j': set_cursor_pos (f.p[0]+1,  f.p[1]   ); break;
-		case 'k': set_cursor_pos (f.p[0]-1,  f.p[1]   ); break;
-		case 'l': set_cursor_pos (f.p[0],    f.p[1]+1 ); break;
-		case 'w': set_cursor_pos (f.p[0],    f.p[1]+BM); break;
-		case 'b': set_cursor_pos (f.p[0],    f.p[1]-BM); break;
-		case 'u': set_cursor_pos (f.p[0]-BM, f.p[1]   ); break;
-		case 'd': set_cursor_pos (f.p[0]+BM, f.p[1]   ); break;
+		case 'h': cursor_move (f.p[0],    f.p[1]-1 ); break;
+		case 'j': cursor_move (f.p[0]+1,  f.p[1]   ); break;
+		case 'k': cursor_move (f.p[0]-1,  f.p[1]   ); break;
+		case 'l': cursor_move (f.p[0],    f.p[1]+1 ); break;
+		case 'w': cursor_move (f.p[0],    f.p[1]+BM); break;
+		case 'b': cursor_move (f.p[0],    f.p[1]-BM); break;
+		case 'u': cursor_move (f.p[0]-BM, f.p[1]   ); break;
+		case 'd': cursor_move (f.p[0]+BM, f.p[1]   ); break;
 		case '0': /* fallthrough */
-		case '^': set_cursor_pos (f.p[0],    0        ); break;
-		case '$': set_cursor_pos (f.p[0],    f.w-1    ); break;
-		case 'g': set_cursor_pos (0,         f.p[1]   ); break;
-		case 'G': set_cursor_pos (f.h-1,     f.p[1]   ); break;
+		case '^': cursor_move (f.p[0],    0        ); break;
+		case '$': cursor_move (f.p[0],    f.w-1    ); break;
+		case 'g': cursor_move (0,         f.p[1]   ); break;
+		case 'G': cursor_move (f.h-1,     f.p[1]   ); break;
 		#undef BM
 		case 'm':
 			action = tolower(getch(mouse));
@@ -341,7 +342,7 @@ newgame:
 			action = tolower(getch(mouse));
 			if (action < 'a' || action > 'z' /* out of bound or */
 			    || markers[action-'a'].l == -1) break; /* unset */
-			set_cursor_pos (markers[action-'a'].l, markers[action-'a'].c);
+			cursor_move (markers[action-'a'].l, markers[action-'a'].c);
 			break;
 		case 'r': /* start a new game */
 			free_field ();
@@ -459,7 +460,7 @@ int choord_square (int line, int col) {
 
 int uncover_square (int l, int c) {
 	f.c[l][c].o = OPENED;
-	f.c[l][c].f = NOFLAG; /* must not be QUESM, otherwise rendering issues */
+	f.c[l][c].f = NOFLAG; /*must not be QUESM, otherwise rendering issues*/
 	partial_show_minefield (l, c, NORMAL);
 
 	if (f.c[l][c].m) {
@@ -555,7 +556,7 @@ void move (int line, int col) {
 }
 
 /* absolute coordinates! */
-void set_cursor_pos (int l, int c) {
+void cursor_move (int l, int c) {
 	partial_show_minefield (f.p[0], f.p[1], NORMAL);
 	/* update f.p */
 	f.p[0] = CLAMP(l, 0, f.h-1);
@@ -564,15 +565,27 @@ void set_cursor_pos (int l, int c) {
 	fputs (op.scheme->mouse_highlight, stdout);
 }
 
+char* cell2schema (int l, int c, int mode) {
+	if (mode == SHOWMINES) return (
+		f.c[l][c].f == FLAG &&  f.c[l][c].m ? op.scheme->field_flagged:
+		f.c[l][c].f == FLAG && !f.c[l][c].m ? op.scheme->mine_wrongf:
+		f.c[l][c].m == STD_MINE             ? op.scheme->mine_normal:
+		f.c[l][c].m == DEATH_MINE           ? op.scheme->mine_death:
+		f.c[l][c].o == CLOSED               ? op.scheme->field_closed:
+		/*...........................*/ op.scheme->number[f.c[l][c].n]);
+	 else return (
+		f.c[l][c].f == FLAG                 ? op.scheme->field_flagged:
+		f.c[l][c].f == QUESM                ? op.scheme->field_question:
+		f.c[l][c].o == CLOSED               ? op.scheme->field_closed:
+		f.c[l][c].m == STD_MINE             ? op.scheme->mine_normal:
+		f.c[l][c].m == DEATH_MINE           ? op.scheme->mine_death:
+		/*...........................*/ op.scheme->number[f.c[l][c].n]);
+}
+
 void partial_show_minefield (int l, int c, int mode) {
 	move (l+LINE_OFFSET, field2screen_c(c));
 
-	if      (f.c[l][c].f == FLAG      ) print (op.scheme->field_flagged);
-	else if (f.c[l][c].f == QUESM     ) print (op.scheme->field_question);
-	else if (f.c[l][c].o == CLOSED    ) print (op.scheme->field_closed);
-	else if (f.c[l][c].m == STD_MINE ||
-                 f.c[l][c].m == DEATH_MINE) print (op.scheme->mine_normal);
-	else    /*.......................*/ print (op.scheme->number[f.c[l][c].n]);
+	print (cell2schema(l, c, mode));
 }
 
 void show_minefield (int mode) {
@@ -608,23 +621,7 @@ void show_minefield (int mode) {
 	for (int l = 0; l < f.h; l++) {
 		print (op.scheme->border_field_l);
 		for (int c = 0; c < f.w; c++) {
-			if (mode == SHOWMINES) {
-				if      (f.c[l][c].f == FLAG &&
-					 f.c[l][c].m              ) print (op.scheme->field_flagged);
-				else if (f.c[l][c].f == FLAG &&
-					 f.c[l][c].m == NO_MINE   ) print (op.scheme->mine_wrongf);
-				else if (f.c[l][c].m == STD_MINE  ) print (op.scheme->mine_normal);
-				else if (f.c[l][c].m == DEATH_MINE) print (op.scheme->mine_death);
-				else if (f.c[l][c].o == CLOSED    ) print (op.scheme->field_closed);
-				else    /*.......................*/ print (op.scheme->number[f.c[l][c].n]);
-			} else {
-				if      (f.c[l][c].f == FLAG      ) print (op.scheme->field_flagged);
-				else if (f.c[l][c].f == QUESM     ) print (op.scheme->field_question);
-				else if (f.c[l][c].o == CLOSED    ) print (op.scheme->field_closed);
-				else if (f.c[l][c].m == STD_MINE  ) print (op.scheme->mine_normal);
-				else if (f.c[l][c].m == DEATH_MINE) print (op.scheme->mine_death);
-				else    /*.......................*/ print (op.scheme->number[f.c[l][c].n]);
-			}
+			print (cell2schema(l, c, mode));
 		}
 		print (op.scheme->border_field_r); print ("\r\n");
 	}
