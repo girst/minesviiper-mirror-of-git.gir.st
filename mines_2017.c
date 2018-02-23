@@ -82,6 +82,7 @@ int uncover_square (int, int);
 void flag_square (int, int);
 void quesm_square (int, int);
 int choord_square (int, int);
+int do_uncover (int*);
 struct minecell** alloc_array (int, int);
 void free_field ();
 int screen2field_l (int);
@@ -90,6 +91,7 @@ int field2screen_l (int);
 int field2screen_c (int);
 void quit();
 void signal_handler (int signum);
+void timer_setup (int);
 
 enum modes {
 	NORMAL,
@@ -104,6 +106,17 @@ enum flagtypes {
 enum fieldopenstates {
 	CLOSED,
 	OPENED,
+};
+enum game_states {
+	GAME_INPROGRESS,
+	GAME_NEW,
+	GAME_WON,
+	GAME_LOST,
+};
+enum space_modes {
+	MODE_OPEN,
+	MODE_FLAG,
+	MODE_QUESM,
 };
 enum event {
 	/* for getctrlseq() */
@@ -153,7 +166,6 @@ void restore_term_mode(struct termios saved_term_mode) {
 
 
 int main (int argc, char** argv) {
-	struct itimerval tbuf;
 	struct sigaction saction;
 	saved_term_mode = set_raw_term_mode();
 
@@ -166,10 +178,6 @@ int main (int argc, char** argv) {
 		perror("SIGALRM");
 		exit(1);
 	}
-	tbuf.it_interval.tv_sec  = 1;
-	tbuf.it_interval.tv_usec = 0;
-	tbuf.it_value.tv_sec  = 1;
-	tbuf.it_value.tv_usec = 0;
 
 	if (sigaction(SIGINT, &saction, NULL) < 0 ) {
 		perror ("SIGINT");
@@ -200,11 +208,11 @@ int main (int argc, char** argv) {
 		default:
 			fprintf (stderr, "%s [OPTIONS] [FIELDSPEC]\n"
 			"OPTIONS:\n"
-			"    n(o flagging)\n"
-			"    f(lagging)\n"
-			"    q(uestion marks)\n"
-			"    c(olored symbols)\n"
-			"    d(oublewidth symbols)\n"
+			"    -n(o flagging)\n"
+			"    -f(lagging)\n"
+			"    -q(uestion marks)\n"
+			"    -c(olored symbols)\n"
+			"    -d(ec charset symbols)\n"
 			"FIELDSPEC:\n"
 			"    WxHxM (width 'x' height 'x' mines)\n"
 			"    defaults to 30x16x99\n"
@@ -212,8 +220,10 @@ int main (int argc, char** argv) {
 			"hjkl: move 1 left/down/up/right\n"
 			"bduw: move 5 left/down/up/right\n"
 			"^Gg$: move to the left/bottom/top/right\n"
-			"left mouse/space: open/choord\n"
+			"left mouse/o: open/choord\n"
 			"right mouse/i: flag/unflag\n"
+			"space: modeful cursor (either open or flag)\n"
+			"a: toggle mode for space (open/flag)\n"
 			":D / r: start a new game\n"
 			"q: quit\n", argv[0]);
 			_exit(0);
@@ -240,6 +250,7 @@ newgame:
 
 	int is_newgame = 1;
 	int cheatmode = 0;
+	int space_mode = MODE_OPEN;
 	struct line_col markers[26];
 	for (int i=26; i; markers[--i].l = -1);
 
@@ -264,6 +275,19 @@ newgame:
 
 		action = getch(mouse);
 		switch (action) {
+		case ' ':
+			switch (space_mode) {
+			case MODE_OPEN:
+				switch (do_uncover(&is_newgame)) {
+					case GAME_LOST: goto lose;
+					case GAME_WON:  goto win;
+				}
+				break;
+			case MODE_FLAG:  flag_square (f.p[0], f.p[1]); break;
+			case MODE_QUESM:quesm_square (f.p[0], f.p[1]); break;
+			}
+			break;
+		case 'a': space_mode = (space_mode+1)%(op.mode+1); break;
 		case CTRSEQ_MOUSE_LEFT:
 			f.p[0] = screen2field_l (mouse[2]);
 			f.p[1] = screen2field_c (mouse[1]);
@@ -277,26 +301,11 @@ newgame:
 			if (f.p[1] < 0 || f.p[1] >= f.w || 
 			    f.p[0] < 0 || f.p[0] >= f.h) break; /*out of bound*/
 			/* fallthrough */
-		case ' ':
-			if (is_newgame) {
-				is_newgame = 0;
-				fill_minefield (f.p[0], f.p[1]);
-				f.t = time(NULL);
-				tbuf.it_value.tv_sec  = 1;
-				tbuf.it_value.tv_usec = 0;
-				if (setitimer(ITIMER_REAL, &tbuf, NULL) == -1) {
-					perror("setitimer");
-					exit(1);
-				}
+		case 'o':
+			switch (do_uncover(&is_newgame)) {
+				case GAME_LOST: goto lose;
+				case GAME_WON:  goto win;
 			}
-			
-			if (f.c[f.p[0]][f.p[1]].f == FLAG  ) break;
-			if (f.c[f.p[0]][f.p[1]].o == CLOSED) {
-				if (uncover_square (f.p[0], f.p[1])) goto lose;
-			} else if (get_neighbours (f.p[0], f.p[1], 1) == 0) {
-				if (choord_square (f.p[0], f.p[1])) goto lose;
-			}
-			if (everything_opened())  goto win;
 			break;
 		case CTRSEQ_MOUSE_RIGHT:
 			f.p[0] = screen2field_l (mouse[2]);
@@ -346,8 +355,7 @@ newgame:
 			if (is_newgame) {
 				is_newgame = 0;
 				fill_minefield (-1, -1);
-				f.t = time(NULL);
-				setitimer (ITIMER_REAL, &tbuf, NULL);
+				timer_setup(1);
 			}
 			show_minefield (cheatmode?NORMAL:SHOWMINES);
 			cheatmode = !cheatmode;
@@ -357,13 +365,7 @@ newgame:
 
 win:
 lose:
-	/* stop timer: */
-	tbuf.it_value.tv_sec  = 0;
-	tbuf.it_value.tv_usec = 0;
-	if ( setitimer(ITIMER_REAL, &tbuf, NULL) == -1 ) {
-		perror("setitimer");
-		exit(1);
-	}
+	timer_setup(0); /* stop timer */
 	show_minefield (SHOWMINES);
 	int gotaction;
 	do {
@@ -468,7 +470,7 @@ int uncover_square (int l, int c) {
 	/* check for chording */
 	if (f.c[l][c].n == 0) {
 		for (int choord_l = -1; choord_l <= 1; choord_l++) {
-			for (int choord_c = -1; choord_c <= 1; choord_c++) {	
+			for (int choord_c = -1; choord_c <= 1; choord_c++) {
 				int newl = l + choord_l;
 				int newc = c + choord_c;
 				if (newl >= 0 && newl < f.h &&
@@ -503,6 +505,24 @@ void quesm_square (int l, int c) {
 	else if (f.c[l][c].f == NOFLAG) f.c[l][c].f = QUESM;
 	else if (f.c[l][c].f == QUESM)  f.c[l][c].f = NOFLAG;
 	partial_show_minefield (l, c, NORMAL);
+}
+
+int do_uncover (int* is_newgame) {
+	if (*is_newgame) {
+		*is_newgame = 0;
+		fill_minefield (f.p[0], f.p[1]);
+		timer_setup(1);
+	}
+
+	if (f.c[f.p[0]][f.p[1]].f == FLAG  ) return GAME_INPROGRESS;
+	if (f.c[f.p[0]][f.p[1]].o == CLOSED) {
+		if (uncover_square (f.p[0], f.p[1])) return GAME_LOST;
+	} else if (get_neighbours (f.p[0], f.p[1], 1) == 0) {
+		if (choord_square (f.p[0], f.p[1])) return GAME_LOST;
+	}
+	if (everything_opened()) return GAME_WON;
+
+	return GAME_INPROGRESS;
 }
 
 void fill_minefield (int l, int c) {
@@ -737,4 +757,28 @@ compatible with the ncurses implementation of same name */
 	}
 
 	return action;
+}
+
+void timer_setup (int enable) {
+	static struct itimerval tbuf;
+	tbuf.it_interval.tv_sec  = 1;
+	tbuf.it_interval.tv_usec = 0;
+
+	if (enable) {
+		f.t = time(NULL);
+		tbuf.it_value.tv_sec  = 1;
+		tbuf.it_value.tv_usec = 0;
+		if (setitimer(ITIMER_REAL, &tbuf, NULL) == -1) {
+			perror("setitimer");
+			exit(1);
+		}
+	} else {
+		tbuf.it_value.tv_sec  = 0;
+		tbuf.it_value.tv_usec = 0;
+		if ( setitimer(ITIMER_REAL, &tbuf, NULL) == -1 ) {
+			perror("setitimer");
+			exit(1);
+		}
+	}
+
 }
