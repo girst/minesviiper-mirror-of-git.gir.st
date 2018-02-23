@@ -1,15 +1,15 @@
 /*******************************************************************************
- minesviiper 0.3.14
- By Tobias Girstmair, 2015 - 2017
+ minesviiper 0.3.145
+ By Tobias Girstmair, 2015 - 2018
 
- ./minesviiper -w 16 -h 16 -m 40
- (see ./minesviiper -\? for full list of options)
+ ./minesviiper 16x16x40
+ (see ./minesviiper -h for full list of options)
 
  MOUSE MODE: - left click to open and choord
              - right click to flag/unflag
  VI MODE:    - hjkl to move cursor left/down/up/right
              - bduw to jump left/down/up/right by 5 cells
-             - space to open and choord
+             - o to open and choord
              - i to flag/unflag
 
  GNU GPL v3, see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt
