@@ -35,6 +35,7 @@ struct minescheme {
 	char* border_bottom_r;
 
 	int cell_width;
+	int flag_offset;
 	char* init_seq;
 	char* reset_seq;
 };
@@ -42,8 +43,8 @@ struct minescheme {
 struct minescheme symbols_mono = {
 	.number = {"　", "１", "２", "３", "４", "５", "６", "７", "８"},
 	.field_closed = "░░",
-	.field_flagged = "⢕⢕",//⡱⢎",//⣏⣹",//▄▀",//▓▓",//██",//▒▒",
-	.field_question = "？",
+	.field_flagged = "\033[7m！\033[0m",//⢕⢕",//⡱⢎",//⣏⣹",//▄▀",//▓▓",//██",//▒▒",
+	.field_question = "\033[7m？\033[0m",
 	.mouse_highlight = "▓▓",
 	.mine_normal = "＊",
 	.mine_death = "＃",
@@ -69,6 +70,7 @@ struct minescheme symbols_mono = {
 	.border_bottom_r = "═╝",
 
 	.cell_width = 2,
+	.flag_offset = 4, //length of the escape sequece infront of .field_flagged and .field_question for cursor highlighting
 };
 
 struct minescheme symbols_col1 = {

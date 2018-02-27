@@ -97,6 +97,7 @@ enum modes {
 	NORMAL,
 	REDUCED,
 	SHOWMINES,
+	HIGHLIGHT,
 };
 enum flagtypes {
 	NOFLAG,
@@ -493,7 +494,7 @@ void flag_square (int l, int c) {
 	are allowed) */
 	f.c[l][c].f = (f.c[l][c].f + 1) % (op.mode + 1);
 	if (f.c[l][c].f==FLAG) f.f++;
-	else f.f--;
+	else f.f--; //WARN: breaks on `-q'!
 	partial_show_minefield (l, c, NORMAL);
 	move (1, op.scheme->cell_width);
 	printf ("[%03d]", f.f);
@@ -563,26 +564,31 @@ void cursor_move (int l, int c) {
 	f.p[1] = CLAMP(c, 0, f.w-1);
 	move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
 	//fputs (op.scheme->mouse_highlight, stdout);
-	print("\033[7m");//invert
-	partial_show_minefield (f.p[0], f.p[1], NORMAL);
+
+	if (!f.c[f.p[0]][f.p[1]].f) print("\033[7m");//invert unless ! or ?
+	partial_show_minefield (f.p[0], f.p[1], HIGHLIGHT);
 	print("\033[0m");//un-invert
 }
 
 char* cell2schema (int l, int c, int mode) {
+	struct minecell cell = f.c[l][c];
+	/* move past invert-ctrlsequence when highlighting the cursor: */
+	int offset = ((mode==HIGHLIGHT)*op.scheme->flag_offset);
+
 	if (mode == SHOWMINES) return (
-		f.c[l][c].f == FLAG &&  f.c[l][c].m ? op.scheme->field_flagged:
-		f.c[l][c].f == FLAG && !f.c[l][c].m ? op.scheme->mine_wrongf:
-		f.c[l][c].m == STD_MINE             ? op.scheme->mine_normal:
-		f.c[l][c].m == DEATH_MINE           ? op.scheme->mine_death:
-		f.c[l][c].o == CLOSED               ? op.scheme->field_closed:
-		/*...........................*/ op.scheme->number[f.c[l][c].n]);
+		cell.f == FLAG &&  cell.m ? op.scheme->field_flagged+offset:
+		cell.f == FLAG && !cell.m ? op.scheme->mine_wrongf+offset:
+		cell.m == STD_MINE        ? op.scheme->mine_normal:
+		cell.m == DEATH_MINE      ? op.scheme->mine_death:
+		cell.o == CLOSED          ? op.scheme->field_closed:
+		/*.......................*/ op.scheme->number[f.c[l][c].n]);
 	 else return (
-		f.c[l][c].f == FLAG                 ? op.scheme->field_flagged:
-		f.c[l][c].f == QUESM                ? op.scheme->field_question:
-		f.c[l][c].o == CLOSED               ? op.scheme->field_closed:
-		f.c[l][c].m == STD_MINE             ? op.scheme->mine_normal:
-		f.c[l][c].m == DEATH_MINE           ? op.scheme->mine_death:
-		/*...........................*/ op.scheme->number[f.c[l][c].n]);
+		cell.f == FLAG            ? op.scheme->field_flagged+offset:
+		cell.f == QUESM           ? op.scheme->field_question+offset:
+		cell.o == CLOSED          ? op.scheme->field_closed:
+		cell.m == STD_MINE        ? op.scheme->mine_normal:
+		cell.m == DEATH_MINE      ? op.scheme->mine_death:
+		/*.......................*/ op.scheme->number[f.c[l][c].n]);
 }
 
 void partial_show_minefield (int l, int c, int mode) {
