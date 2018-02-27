@@ -562,7 +562,10 @@ void cursor_move (int l, int c) {
 	f.p[0] = CLAMP(l, 0, f.h-1);
 	f.p[1] = CLAMP(c, 0, f.w-1);
 	move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-	fputs (op.scheme->mouse_highlight, stdout);
+	//fputs (op.scheme->mouse_highlight, stdout);
+	print("\033[7m");//invert
+	partial_show_minefield (f.p[0], f.p[1], NORMAL);
+	print("\033[0m");//un-invert
 }
 
 char* cell2schema (int l, int c, int mode) {

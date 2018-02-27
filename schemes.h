@@ -42,7 +42,7 @@ struct minescheme {
 struct minescheme symbols_mono = {
 	.number = {"　", "１", "２", "３", "４", "５", "６", "７", "８"},
 	.field_closed = "░░",
-	.field_flagged = "▒▒",
+	.field_flagged = "⢕⢕",//⡱⢎",//⣏⣹",//▄▀",//▓▓",//██",//▒▒",
 	.field_question = "？",
 	.mouse_highlight = "▓▓",
 	.mine_normal = "＊",
