@@ -18,7 +18,7 @@ Complete documentation and screenshots can be found on the
 | `^`/`G`/`g`/`$` | move to the very left / bottom / top / right |
 | `i`             | flag / unflag                                |
 | `o`             | open / chord                                 |
-| space`          | modeful, either open or flag                 |
+| space           | modeful, either open or flag                 |
 | `a`             | toggle mode for space (open/flag)            |
 | `r`             | restart game                                 |
 | Ctrl-L          | redraw screen                                |
@@ -30,15 +30,15 @@ A new game can be started by clicking on the `:D` icon.
 
 ## Command line arguments
 
-| Arg.         | Description                                   |
-| ------------ | --------------------------------------------- |
-| `-h`         | quick help                                    |
-| `-n`         | disable flagging                              |
-| `-f`         | enable flagging (default)                     |
-| `-q`         | enable question marks                         |
-| `-c`         | switch to the colored scheme                  |
-| `-d`         | switch to the DEC charset scheme              |
-| *W*`x`*H*`M` | Fieldspec, width \* height \* number of mines |
+| Arg.            | Description                                   |
+| --------------- | --------------------------------------------- |
+| `-h`            | quick help                                    |
+| `-n`            | disable flagging                              |
+| `-f`            | enable flagging (default)                     |
+| `-q`            | enable question marks                         |
+| `-c`            | switch to the colored scheme                  |
+| `-d`            | switch to the DEC charset scheme              |
+| *W*`x`*H*`x`*M* | Fieldspec, width \* height \* number of mines |
 
 ## Character Schemes
 
