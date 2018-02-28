@@ -72,6 +72,7 @@ struct line_col {
 void fill_minefield (int, int);
 void move (int, int);
 void cursor_move (int, int);
+void to_next_boundary (int l, int c, char direction);
 int getch (unsigned char*);
 int getctrlseq (unsigned char*);
 int everything_opened ();
@@ -321,21 +322,19 @@ newgame:
 			/* fallthrough */
 		case 'i': flag_square (f.p[0], f.p[1]); break;
 		case '?':quesm_square (f.p[0], f.p[1]); break;
-		#define BM BIG_MOVE
 		case 'h': cursor_move (f.p[0],    f.p[1]-1 ); break;
 		case 'j': cursor_move (f.p[0]+1,  f.p[1]   ); break;
 		case 'k': cursor_move (f.p[0]-1,  f.p[1]   ); break;
 		case 'l': cursor_move (f.p[0],    f.p[1]+1 ); break;
-		case 'w': cursor_move (f.p[0],    f.p[1]+BM); break;
-		case 'b': cursor_move (f.p[0],    f.p[1]-BM); break;
-		case 'u': cursor_move (f.p[0]-BM, f.p[1]   ); break;
-		case 'd': cursor_move (f.p[0]+BM, f.p[1]   ); break;
+		case 'w': to_next_boundary (f.p[0], f.p[1], '>'); break;
+		case 'b': to_next_boundary (f.p[0], f.p[1], '<'); break;
+		case 'u': to_next_boundary (f.p[0], f.p[1], '^'); break;
+		case 'd': to_next_boundary (f.p[0], f.p[1], 'v'); break;
 		case '0': /* fallthrough */
 		case '^': cursor_move (f.p[0],    0        ); break;
 		case '$': cursor_move (f.p[0],    f.w-1    ); break;
 		case 'g': cursor_move (0,         f.p[1]   ); break;
 		case 'G': cursor_move (f.h-1,     f.p[1]   ); break;
-		#undef BM
 		case 'm':
 			action = tolower(getch(mouse));
 			if (action < 'a' || action > 'z') break;/*out of bound*/
@@ -573,6 +572,48 @@ void cursor_move (int l, int c) {
 	partial_show_minefield (f.p[0], f.p[1], HIGHLIGHT);
 	print("\033[0m");//un-invert
 }
+
+#define CMP_CELLS(a, b) ((a.o<<2 + a.f) - (b.o<<2 + b.f))
+void to_next_boundary (int l, int c, char direction) {
+	//go $DIRECTION until we notice a change in open-state or flag-state. start one over so we don't just go to the next field.
+	// then move once more, so we are on the changed field
+	// fall back to BIG_MOVE if we don't find anything suitable.
+	int new_l = l;
+	int new_c = c;
+	switch (direction) {
+	case '>': new_c += BIG_MOVE;
+		for (int i = c+1; i < f.w-1; i++)
+			if (CMP_CELLS(f.c[l][i], f.c[l][i+1]) != 0) {
+				new_c = ++i;
+				break;
+			}
+		break;
+	case '<': new_c -= BIG_MOVE;
+		for (int i = c-1; i > 0; i--)
+			if (CMP_CELLS(f.c[l][i], f.c[l][i-1]) != 0) {
+				new_c = --i;
+				break;
+			}
+		break;
+	case '^': new_l -= BIG_MOVE;
+		for (int i = l-1; i > 0; i--)
+			if (CMP_CELLS(f.c[i][c], f.c[i-1][c]) != 0) {
+				new_l = --i;
+				break;
+			}
+		break;
+	case 'v': new_l += BIG_MOVE;
+		for (int i = l+1; i < f.h-1; i++)
+			if (CMP_CELLS(f.c[i][c], f.c[i+1][c]) != 0) {
+				new_l = ++i;
+				break;
+			}
+		break;
+	}
+
+	cursor_move (new_l, new_c);
+}
+#undef CMP_CELLS
 
 char* cell2schema (int l, int c, int mode) {
 	struct minecell cell = f.c[l][c];
