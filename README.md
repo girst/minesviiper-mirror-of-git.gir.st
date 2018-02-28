@@ -11,17 +11,18 @@ Complete documentation and screenshots can be found on the
 
 ## Keybindings and mouse
 
-| Key         | Action                    |
-| ----------- | ------------------------- |
-| `h`/`b`/`^` | move 1/5/all to the left  |
-| `j`/`d`/`G` | move 1/5/all down         |
-| `k`/`u`/`g` | move 1/5/all up           |
-| `l`/`w`/`$` | move 1/5/all to the right |
-| `i`         | flag / unflag             |
-| space       | open / chord              |
-| `r`         | restart game              |
-| Ctrl-L      | redraw screen             |
-| `q`         | quit                      |
+| Key             | Action                                       |
+| --------------- | -------------------------------------------- |
+| `h`/`j`/`k`/`l` | move one cell left / down / up / right       |
+| `b`/`d`/`u`/`w` | move to the next "word" boundary             |
+| `^`/`G`/`g`/`$` | move to the very left / bottom / top / right |
+| `i`             | flag / unflag                                |
+| `o`             | open / chord                                 |
+| space`          | modeful, either open or flag                 |
+| `a`             | toggle mode for space (open/flag)            |
+| `r`             | restart game                                 |
+| Ctrl-L          | redraw screen                                |
+| `q`             | quit                                         |
 
 Use the left mouse button to open or chord a cell, and the right button to flag.
 
@@ -29,17 +30,15 @@ A new game can be started by clicking on the `:D` icon.
 
 ## Command line arguments
 
-| Arg.   | Description                      |
-| ------ | -------------------------------  |
-| `-h`   | quick help                       |
-| `-w N` | set field width to N cells       |
-| `-h N` | set field height to N cells      |
-| `-m N` | set number of mines to N         |
-| `-n`   | disable flagging                 |
-| `-f`   | enable flagging (default)        |
-| `-q`   | enable question marks            |
-| `-c`   | switch to the colored scheme     |
-| `-d`   | switch to the DEC charset scheme |
+| Arg.         | Description                                   |
+| ------------ | --------------------------------------------- |
+| `-h`         | quick help                                    |
+| `-n`         | disable flagging                              |
+| `-f`         | enable flagging (default)                     |
+| `-q`         | enable question marks                         |
+| `-c`         | switch to the colored scheme                  |
+| `-d`         | switch to the DEC charset scheme              |
+| *W*`x`*H*`M` | Fieldspec, width \* height \* number of mines |
 
 ## Character Schemes
 
@@ -62,4 +61,4 @@ is UTF-8-encoded. Therefore, care must be taken when editing character schemes.
 ## License
 
 This program is released under the terms of the GNU GPL version 3.    
-&copy; 2015-2017 Tobias Girstmair
+&copy; 2015-2018 Tobias Girstmair
