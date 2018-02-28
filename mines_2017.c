@@ -573,47 +573,30 @@ void cursor_move (int l, int c) {
 	print("\033[0m");//un-invert
 }
 
-#define CMP_CELLS(a, b) ((a.o<<2 + a.f) - (b.o<<2 + b.f))
+/* to_next_boundary(): move into the supplied direction until a change in open-
+state or flag-state is found and move there. falls back to BIG_MOVE. */
+#define FIND_NEXT(X, L, C, L1, C1, MAX, OP) do {\
+	new_ ## X OP ## = BIG_MOVE;\
+	for (int i = X OP 1; i > 0 && i < f.MAX-1; i OP ## OP)\
+		if ((f.c[L ][C ].o<<2 + f.c[L ][C ].f) \
+		 != (f.c[L1][C1].o<<2 + f.c[L1][C1].f)) {\
+			new_ ## X = i OP 1;\
+			break;\
+		}\
+	} while(0)
 void to_next_boundary (int l, int c, char direction) {
-	//go $DIRECTION until we notice a change in open-state or flag-state. start one over so we don't just go to the next field.
-	// then move once more, so we are on the changed field
-	// fall back to BIG_MOVE if we don't find anything suitable.
 	int new_l = l;
 	int new_c = c;
 	switch (direction) {
-	case '>': new_c += BIG_MOVE;
-		for (int i = c+1; i < f.w-1; i++)
-			if (CMP_CELLS(f.c[l][i], f.c[l][i+1]) != 0) {
-				new_c = ++i;
-				break;
-			}
-		break;
-	case '<': new_c -= BIG_MOVE;
-		for (int i = c-1; i > 0; i--)
-			if (CMP_CELLS(f.c[l][i], f.c[l][i-1]) != 0) {
-				new_c = --i;
-				break;
-			}
-		break;
-	case '^': new_l -= BIG_MOVE;
-		for (int i = l-1; i > 0; i--)
-			if (CMP_CELLS(f.c[i][c], f.c[i-1][c]) != 0) {
-				new_l = --i;
-				break;
-			}
-		break;
-	case 'v': new_l += BIG_MOVE;
-		for (int i = l+1; i < f.h-1; i++)
-			if (CMP_CELLS(f.c[i][c], f.c[i+1][c]) != 0) {
-				new_l = ++i;
-				break;
-			}
-		break;
+	case '>': FIND_NEXT(c, l, i, l, i+1, w, +); break;
+	case '<': FIND_NEXT(c, l, i, l, i-1, w, -); break; 
+	case '^': FIND_NEXT(l, i, c, i-1, c, h, -); break;
+	case 'v': FIND_NEXT(l, i, c, i+1, c, h, +); break;
 	}
 
 	cursor_move (new_l, new_c);
 }
-#undef CMP_CELLS
+#undef FIND_NEXT
 
 char* cell2schema (int l, int c, int mode) {
 	struct minecell cell = f.c[l][c];
