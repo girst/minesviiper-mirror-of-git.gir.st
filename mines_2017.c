@@ -220,15 +220,18 @@ int main (int argc, char** argv) {
 			"    WxHxM (width 'x' height 'x' mines)\n"
 			"    defaults to 30x16x99\n"
 			"\n"
-			"hjkl: move 1 left/down/up/right\n"
-			"bduw: move 5 left/down/up/right\n"
-			"^Gg$: move to the left/bottom/top/right\n"
-			"left mouse/o: open/choord\n"
-			"right mouse/i: flag/unflag\n"
-			"space: modeful cursor (either open or flag)\n"
-			"a: toggle mode for space (open/flag)\n"
-			":D / r: start a new game\n"
-			"q: quit\n", argv[0]);
+			"Keybindings:\n"
+			"    hjkl: move left/down/up/right\n"
+			"    bduw: move to next boundary\n"
+			"    ^Gg$: move to the left/bottom/top/right\n"
+			"    o:    open/choord\n"
+			"    i:    flag/unflag\n"
+			"    space:modeful cursor (either open or flag)\n"
+			"    a:    toggle mode for space (open/flag)\n"
+			"    mX:   set a mark for letter X\n"
+			"    `X:   move to mark X (aliased to ')\n"
+			"    r:    start a new game\n"
+			"    q:    quit\n", argv[0]);
 			_exit(0);
 		}
 	}
