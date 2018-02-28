@@ -54,6 +54,7 @@ struct minefield {
 	int f; /* flags counter */
 	int t; /* time of game start */
 	int p[2]; /* cursor position {line, col} */
+	int s; /* space mode */
 } f;
 
 struct opt {
@@ -251,7 +252,7 @@ newgame:
 
 	int is_newgame = 1;
 	int cheatmode = 0;
-	int space_mode = MODE_OPEN;
+	f.s = MODE_OPEN;
 	struct line_col markers[26];
 	for (int i=26; i; markers[--i].l = -1);
 
@@ -277,19 +278,22 @@ newgame:
 		action = getch(mouse);
 		switch (action) {
 		case ' ':
-			if (space_mode == MODE_OPEN ||
+			if (f.s == MODE_OPEN ||
 			    f.c[f.p[0]][f.p[1]].o == OPENED) {
 				switch (do_uncover(&is_newgame)) {
 					case GAME_LOST: goto lose;
 					case GAME_WON:  goto win;
 				}
-			} else if (space_mode == MODE_FLAG) {
+			} else if (f.s == MODE_FLAG) {
 				flag_square (f.p[0], f.p[1]);
-			} else if (space_mode ==  MODE_QUESM) {
+			} else if (f.s ==  MODE_QUESM) {
 				quesm_square (f.p[0], f.p[1]);
 			}
 			break;
-		case 'a': space_mode = (space_mode+1)%(op.mode+1); break;
+		case 'a':
+			f.s = (f.s+1)%(op.mode+1);
+			show_minefield (cheatmode?SHOWMINES:NORMAL);
+			break;
 		case CTRSEQ_MOUSE_LEFT:
 			f.p[0] = screen2field_l (mouse[2]);
 			f.p[1] = screen2field_c (mouse[1]);
@@ -599,6 +603,7 @@ void partial_show_minefield (int l, int c, int mode) {
 
 void show_minefield (int mode) {
 	int dtime;
+	static char modechar[] = {'*', '!', '?'};
 
 	move (0,0);
 
@@ -617,8 +622,8 @@ void show_minefield (int mode) {
 	printf("[%03d]", f.f);
 	printm (f.w*op.scheme->cell_width/2-6, " ");
 	printf ("%s", mode==SHOWMINES?":C":":D");
-	printm (f.w*op.scheme->cell_width/2-6, " ");
-	printf ("[%03d]", dtime);
+	printm (f.w*op.scheme->cell_width/2-6-4, " ");
+	printf ("[%c] [%03d]", modechar[f.s], dtime);
 	print (op.scheme->border_status_r);
 	print ("\r\n");
 	/* third line */
