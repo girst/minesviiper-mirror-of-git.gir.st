@@ -61,7 +61,7 @@ struct minescheme symbols_mono = {
 	.mine_wrongf = "／",
 	.mine_wrongq = "＼",
 
-	.emoticons = {":)", "X(", "8)", ":o"},
+	.emoticons = {":)", ":(", ":D", ":o"},
 
 	.border_top_l = "╔═",
 	.border_top_m = "═",
@@ -132,7 +132,7 @@ struct minescheme symbols_doublewidth = {
 	.mine_wrongf = "\033[1m/\033[0m",
 	.mine_wrongq = "\033[1m\\\033[0m",
 
-	.emoticons = {":)", "X(", "8)", ":o"},
+	.emoticons = {":)", ":(", ":D", ":o"},
 
 	.border_top_l = "\033#6\x6c",
 	.border_top_m = "\x71",
