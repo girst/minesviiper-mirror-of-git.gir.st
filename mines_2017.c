@@ -652,7 +652,7 @@ void show_minefield (int mode) {
 	printf ("%s", mode==SHOWMINES?everything_opened()?
 		EMOT(WON) : EMOT(DEAD) : EMOT(SMILE));
 	printm (f.w*op.scheme->cell_width/2-6-4, " ");
-	printf ("[%c] [%03d]", modechar[f.s], dtime);
+	printf ("[%c] [%03d]", modechar[f.s], dtime); //TODO: modechar is too large for 8x8 field
 	print (op.scheme->border_status_r);
 	print ("\r\n");
 	/* third line */
