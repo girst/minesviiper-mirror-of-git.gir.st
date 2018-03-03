@@ -37,6 +37,7 @@
 #define CLAMP(a,m,M) (a<m?m:(a>M?M:a))
 #define printm(num, str) for (int i = 0; i < num; i++) fputs (str, stdout)
 #define print(str) fputs (str, stdout)
+#define EMOT(e) op.scheme->emoticons[EMOT_ ## e]
 
 struct minecell {
 	unsigned m:2; /* mine?1:killmine?2:0 */
@@ -425,7 +426,7 @@ int wait_mouse_up (int l, int c) {
 	int l2, c2;
 
 	/* show :o face */
-	move (1, field2screen_c (f.w/2)-1); print (":o");
+	move (1, field2screen_c (f.w/2)-1); print (EMOT(OHH));
 
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
 		/* show a pushed-in button if cursor is on minefield */
@@ -443,7 +444,7 @@ int wait_mouse_up (int l, int c) {
 		}
 	}
 
-	move (1, field2screen_c (f.w/2)-1); print (":D");
+	move (1, field2screen_c (f.w/2)-1); print (EMOT(SMILE));
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
 		partial_show_minefield (l, c, NORMAL);
 	}
@@ -648,7 +649,8 @@ void show_minefield (int mode) {
 	print (op.scheme->border_status_l);
 	printf("[%03d]", f.f);
 	printm (f.w*op.scheme->cell_width/2-6, " ");
-	printf ("%s", mode==SHOWMINES?":C":":D");
+	printf ("%s", mode==SHOWMINES?everything_opened()?
+		EMOT(WON) : EMOT(DEAD) : EMOT(SMILE));
 	printm (f.w*op.scheme->cell_width/2-6-4, " ");
 	printf ("[%c] [%03d]", modechar[f.s], dtime);
 	print (op.scheme->border_status_r);

@@ -4,6 +4,14 @@ contains color/monchrome schemes for tty-mines.
 #ifndef __SCHEMES_H__
 #define __SCHEMES_H__
 
+enum e_emoticons {
+	EMOT_SMILE,
+	EMOT_DEAD,
+	EMOT_WON,
+	EMOT_OHH,
+	NUM_EMOT,
+};
+
 struct minescheme {
 	char* number[9];
 	char* field_closed;
@@ -14,6 +22,8 @@ struct minescheme {
 	char* mine_death;
 	char* mine_wrongf;
 	char* mine_wrongq;
+
+	char* emoticons[NUM_EMOT];
 
 	char* border_top_l;
 	char* border_top_m;
@@ -51,6 +61,8 @@ struct minescheme symbols_mono = {
 	.mine_wrongf = "／",
 	.mine_wrongq = "＼",
 
+	.emoticons = {":)", "X(", "8)", ":o"},
+
 	.border_top_l = "╔═",
 	.border_top_m = "═",
 	.border_top_r = "═╗",
@@ -83,6 +95,8 @@ struct minescheme symbols_col1 = {
 	.mine_death = "\033[31m＊\033[m",
 	.mine_wrongf = "／",
 	.mine_wrongq = "＼",
+
+	.emoticons = {":D", ":C", "8)", ":o"},
 
 	.border_top_l = "╔═",
 	.border_top_m = "═",
@@ -117,6 +131,8 @@ struct minescheme symbols_doublewidth = {
 	.mine_death = "\033[1m#\033[0m",
 	.mine_wrongf = "\033[1m/\033[0m",
 	.mine_wrongq = "\033[1m\\\033[0m",
+
+	.emoticons = {":)", "X(", "8)", ":o"},
 
 	.border_top_l = "\033#6\x6c",
 	.border_top_m = "\x71",
