@@ -444,7 +444,7 @@ int wait_mouse_up (int l, int c) {
 		}
 	}
 
-	move (1, field2screen_c (f.w/2)-1); print (EMOT(SMILE));
+	move (1, field2screen_c (f.w/2)-1); print (EMOT(SMILE)); //TODO: does not respect mode (SHOWMINES, GAME_WON, GAME_LOST)
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
 		partial_show_minefield (l, c, NORMAL);
 	}
