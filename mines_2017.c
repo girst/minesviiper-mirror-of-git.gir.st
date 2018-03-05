@@ -238,7 +238,9 @@ int main (int argc, char** argv) {
 	}
 	/* end parse options*/
 	if (optind < argc) {
-		sscanf (argv[optind], "%dx%dx%d", &(f.w), &(f.h), &(f.m));
+		int n = sscanf (argv[optind], "%dx%dx%d", &f.w, &f.h, &f.m);
+		if (n == 2 && f.w == 8 && f.h == 8) f.m = 10;
+		if (n == 2 && f.w == 16 && f.h == 16) f.m = 40;
 	}
 	/* check boundaries */
 	if (f.m > (f.w-1) * (f.h-1)) {
