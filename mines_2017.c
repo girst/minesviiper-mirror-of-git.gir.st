@@ -506,7 +506,7 @@ void flag_square (int l, int c) {
 	else f.f--; //WARN: breaks on `-q'!
 	partial_show_minefield (l, c, NORMAL);
 	move (1, op.scheme->cell_width);
-	printf ("[%03d]", f.f);
+	printf ("[%03d]", f.m - f.f);
 }
 
 void quesm_square (int l, int c) {
@@ -649,7 +649,7 @@ void show_minefield (int mode) {
 	printf ("%s\r\n", op.scheme->border_top_r);
 	/* second line */
 	print (op.scheme->border_status_l);
-	printf("[%03d]", f.f);
+	printf("[%03d]", f.m - f.f);
 	printm (f.w*op.scheme->cell_width/2-6, " ");
 	printf ("%s", mode==SHOWMINES?everything_opened()?
 		EMOT(WON) : EMOT(DEAD) : EMOT(SMILE));
