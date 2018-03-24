@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
 #include <sys/time.h>
 #include <termios.h>
 #include <time.h>
@@ -189,12 +190,6 @@ int main (int argc, char** argv) {
 	}
 	/* end screen setup */
 
-	/* setup defaults */
-	f.w = 30;
-	f.h = 16;
-	f.m = 99;
-	f.c = NULL; /*to not free() array before it is allocated*/
-
 	op.scheme = &symbols_mono;
 	op.mode = FLAG;
 	/* end defaults */
@@ -218,8 +213,8 @@ int main (int argc, char** argv) {
 			"    -c(olored symbols)\n"
 			"    -d(ec charset symbols)\n"
 			"FIELDSPEC:\n"
-			"    WxHxM (width 'x' height 'x' mines)\n"
-			"    defaults to 30x16x99\n"
+			"    WxH[xM] (width 'x' height 'x' mines)\n"
+			"    defaults to 30x16x99; mines will be ~20%% if not given\n"
 			"\n"
 			"Keybindings:\n"
 			"    hjkl: move left/down/up/right\n"
@@ -237,10 +232,48 @@ int main (int argc, char** argv) {
 		}
 	}
 	/* end parse options*/
-	if (optind < argc) {
+	if (optind < argc) { /* parse Fieldspec */
 		int n = sscanf (argv[optind], "%dx%dx%d", &f.w, &f.h, &f.m);
-		if (n == 2 && f.w == 8 && f.h == 8) f.m = 10;
-		if (n == 2 && f.w == 16 && f.h == 16) f.m = 40;
+		struct winsize w;
+		ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+#define CW op.scheme->cell_width
+#define WW w.ws_col /*window width  */
+#define WH w.ws_row /*window height */
+#define FW f.w      /* field width  */
+#define FH f.h      /* field height */
+#define MM 231      /* mouse maximum*/
+#define LB 2        /*  left border */
+#define RB 2        /* right border */
+#define TB 3        /*   top border */
+#define BB 2        /*bottom border */
+
+		if (LB + FW*CW + RB > WW) FW = WW/CW - (LB+RB);
+		if (TB + FH    + BB > WH) FH = WH    - (TB+BB);
+		if (LB + FW*CW      > MM) FW = MM/CW - LB;
+		if (TB + FH         > MM) FH = MM    - TB;
+
+		if (n == 1) {
+			fprintf (stderr, "Provide at least width and height to the Fieldspec.\r\n");
+			return 0;
+		} else if (n == 2) {
+			if (f.w < 30) f.m = f.w*f.h*.15625;
+			else f.m = f.w*f.h*.20625;
+			//hc: .35416_
+		}
+#undef CW
+#undef WW
+#undef WH
+#undef FW
+#undef FH
+#undef MM
+#undef LB
+#undef RB
+#undef TB
+#undef BB
+	} else { /* use defaults */
+		f.w = 30;
+		f.h = 16;
+		f.m = 99;
 	}
 	/* check boundaries */
 	if (f.m > (f.w-1) * (f.h-1)) {
@@ -649,7 +682,7 @@ void show_minefield (int mode) {
 	printf ("%s\r\n", op.scheme->border_top_r);
 	/* second line */
 	print (op.scheme->border_status_l);
-	printf("[%03d]", f.m - f.f);
+	printf("[%03d]", f.m - f.f); //TODO: breaks layout if >999 mines
 	printm (f.w*op.scheme->cell_width/2-6, " ");
 	printf ("%s", mode==SHOWMINES?everything_opened()?
 		EMOT(WON) : EMOT(DEAD) : EMOT(SMILE));
@@ -714,7 +747,9 @@ void free_field () {
 	for (int l = 0; l < f.h; l++) {
 		free (f.c[l]);
 	}
+
 	free (f.c);
+	f.c = NULL;
 }
 
 int screen2field_l (int l) {
