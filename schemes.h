@@ -64,14 +64,14 @@ struct minescheme symbols_mono = {
 	.emoticons = {":)", ":(", ":D", ":o"},
 
 	.border_top_l = "╔═",
-	.border_top_m = "═",
+	.border_top_m = "══",
 	.border_top_r = "═╗",
 
 	.border_status_l = "║ ",
 	.border_status_r = " ║",
 
 	.border_spacer_l = "╟─",
-	.border_spacer_m = "─",
+	.border_spacer_m = "──",
 	.border_spacer_r = "─╢",
 
 	.border_field_l = "║ ",
@@ -99,14 +99,14 @@ struct minescheme symbols_col1 = {
 	.emoticons = {":D", ":C", "8)", ":o"},
 
 	.border_top_l = "╔═",
-	.border_top_m = "═",
+	.border_top_m = "══",
 	.border_top_r = "═╗",
 
 	.border_status_l = "║ ",
 	.border_status_r = " ║",
 
 	.border_spacer_l = "╟─",
-	.border_spacer_m = "─",
+	.border_spacer_m = "──",
 	.border_spacer_r = "─╢",
 
 	.border_field_l = "║ ",

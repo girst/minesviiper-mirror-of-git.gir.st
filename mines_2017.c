@@ -65,6 +65,11 @@ struct opt {
 } op;
 
 int alt_screen = 0;
+char* spaces = /* for formatstring in show_minefield(); mouse-max < this */
+	"                                                                "
+	"                                                                "
+	"                                                                "
+	"                                                                ";
 
 struct line_col {
 	int l;
@@ -141,10 +146,12 @@ enum mine_types {
 };
 
 void signal_handler (int signum) {
+	int dtime;
 	switch (signum) {
 	case SIGALRM:
-		move (1, f.w*op.scheme->cell_width-(op.scheme->cell_width%2)-3);
-		printf ("[%03d]", f.t?(int)difftime (time(NULL), f.t):0);
+		dtime = difftime (time(NULL), f.t);
+		move (1, f.w*op.scheme->cell_width-(op.scheme->cell_width%2)-3-(dtime>999));
+		printf ("[%03d]", f.t?dtime:0);
 		break;
 	case SIGINT:
 		exit(128+SIGINT);
@@ -666,7 +673,8 @@ void partial_show_minefield (int l, int c, int mode) {
 
 void show_minefield (int mode) {
 	int dtime;
-	int n; /* determine size of variable width fields */
+	int n1, n2; /* determine size of variable width fields */
+	int half_spaces = f.w*op.scheme->cell_width/2;
 	static char modechar[] = {'*', '!', '?'};
 
 	move (0,0);
@@ -679,21 +687,21 @@ void show_minefield (int mode) {
 
 	/* first line */
 	print (op.scheme->border_top_l);
-	printm (f.w*op.scheme->cell_width,op.scheme->border_top_m);
+	printm (f.w, op.scheme->border_top_m);
 	printf ("%s\r\n", op.scheme->border_top_r);
 	/* second line */
-	print (op.scheme->border_status_l);
-	n = printf("[%03d]", f.m - f.f); //TODO: breaks layout if >999 mines
-	printm (f.w*op.scheme->cell_width/2-(n+1), " ");
-	printf ("%s", mode==SHOWMINES?everything_opened()?
-		EMOT(WON) : EMOT(DEAD) : EMOT(SMILE));
-	printm (f.w*op.scheme->cell_width/2-6-4, " ");
-	printf ("[%c] [%03d]", modechar[f.s], dtime); //TODO: modechar is too large for 8x8 field
-	print (op.scheme->border_status_r);
-	print ("\r\n");
+	printf("%s[%03d%c]%.*s%s%.*s[%03d]%s\r\n",
+	  op.scheme->border_status_l,
+	  f.m - f.f,
+	  modechar[f.s],
+	  half_spaces-7-(f.m-f.f>999), spaces,
+	  mode==SHOWMINES?everything_opened()?EMOT(WON):EMOT(DEAD):EMOT(SMILE),
+	  half_spaces-6-(dtime>999), spaces,
+	  dtime,
+	  op.scheme->border_status_r);
 	/* third line */
 	print (op.scheme->border_spacer_l);
-	printm (f.w*op.scheme->cell_width,op.scheme->border_spacer_m);
+	printm (f.w, op.scheme->border_spacer_m);
 	print (op.scheme->border_spacer_r);
 	print ("\r\n");
 	/* main body */
