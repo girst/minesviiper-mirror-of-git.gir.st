@@ -538,6 +538,8 @@ int uncover_square (int l, int c) {
 }
 
 void flag_square (int l, int c) {
+	static char modechar[] = {'*', '!', '?'};
+
 	if (f.c[l][c].o != CLOSED) return;
 	/* cycles through flag/quesm/noflag (uses op.mode to detect which ones 
 	are allowed) */
@@ -546,7 +548,7 @@ void flag_square (int l, int c) {
 	else f.f--; //WARN: breaks on `-q'!
 	partial_show_minefield (l, c, NORMAL);
 	move (1, op.scheme->cell_width);
-	printf ("[%03d]", f.m - f.f);
+	printf ("[%03d%c]", f.m - f.f, modechar[f.s]);
 }
 
 void quesm_square (int l, int c) {
