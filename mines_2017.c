@@ -666,6 +666,7 @@ void partial_show_minefield (int l, int c, int mode) {
 
 void show_minefield (int mode) {
 	int dtime;
+	int n; /* determine size of variable width fields */
 	static char modechar[] = {'*', '!', '?'};
 
 	move (0,0);
@@ -682,8 +683,8 @@ void show_minefield (int mode) {
 	printf ("%s\r\n", op.scheme->border_top_r);
 	/* second line */
 	print (op.scheme->border_status_l);
-	printf("[%03d]", f.m - f.f); //TODO: breaks layout if >999 mines
-	printm (f.w*op.scheme->cell_width/2-6, " ");
+	n = printf("[%03d]", f.m - f.f); //TODO: breaks layout if >999 mines
+	printm (f.w*op.scheme->cell_width/2-(n+1), " ");
 	printf ("%s", mode==SHOWMINES?everything_opened()?
 		EMOT(WON) : EMOT(DEAD) : EMOT(SMILE));
 	printm (f.w*op.scheme->cell_width/2-6-4, " ");
