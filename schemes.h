@@ -135,7 +135,7 @@ struct minescheme symbols_doublewidth = {
 	.mine_wrongf = SGR(BOLD,"/"),
 	.mine_wrongq = SGR(BOLD,"\\"),
 
-	.emoticons = {":)", ":(", ":D", ":o"},
+	.emoticons = {":)", ":(", ":D", "\033(B:o\033(0"},
 
 	.border = {{"\033#6\x6c","\x71","\x6b"},
 	           {"\033#6\x78","    ","\x78"},

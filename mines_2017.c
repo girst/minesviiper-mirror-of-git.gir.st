@@ -94,6 +94,7 @@ int screen2field_l (int);
 int screen2field_c (int);
 int field2screen_l (int);
 int field2screen_c (int);
+int clicked_emoticon (unsigned char*);
 void quit(void);
 void signal_handler (int signum);
 void timer_setup (int);
@@ -181,9 +182,6 @@ void restore_term_mode(struct termios saved_term_mode) {
 
 int main (int argc, char** argv) {
 	struct sigaction saction;
-	saved_term_mode = set_raw_term_mode();
-
-	atexit (*quit);
 
 	saction.sa_handler = signal_handler;
 	sigemptyset(&saction.sa_mask);
@@ -237,7 +235,7 @@ int main (int argc, char** argv) {
 			"    `X:   move to mark X (aliased to ')\n"
 			"    r:    start a new game\n"
 			"    q:    quit\n", argv[0]);
-			_exit(0);
+			_exit(optget=='h'?0:1);
 		}
 	}
 	/* end parse options*/
@@ -306,6 +304,9 @@ newgame:
 	struct line_col markers[26];
 	for (int i=26; i; markers[--i].l = -1);
 
+	/* setup the screen: */
+	saved_term_mode = set_raw_term_mode();
+	atexit (*quit);
 	/* switch to alternate screen */
 	printf ("\033[?47h");
 	/* reset cursor, clear screen */
@@ -344,10 +345,7 @@ newgame:
 			show_minefield (cheatmode?SHOWMINES:NORMAL);
 			break;
 		case CTRSEQ_MOUSE_LEFT:
-			/* :D clicked: TODO: won't work in single-width mode! */
-			if (mouse[2] == LINE_OFFSET-1 &&
-			   (mouse[1] == f.w+COL_OFFSET ||
-			    mouse[1] == f.w+COL_OFFSET+1)) {
+			if (clicked_emoticon(mouse)) {
 				free_field ();
 				goto newgame;
 			}
@@ -433,9 +431,7 @@ endgame:
 	do {
 		unsigned char mouse[3];
 		gotaction = getch(mouse);
-		/* :D clicked: TODO: won't work in single-width mode! */
-		if (gotaction==CTRSEQ_MOUSE_LEFT && mouse[2]==LINE_OFFSET-1 &&
-		   (mouse[1]==f.w+COL_OFFSET || mouse[1]==f.w+COL_OFFSET+1)) {
+		if (gotaction==CTRSEQ_MOUSE_LEFT && clicked_emoticon(mouse)) {
 			free_field ();
 			goto newgame;
 		} else if (gotaction == 'r') {
@@ -773,13 +769,20 @@ WARN: tested only with scheme.cell_width = 1 and scheme.cell_width = 2. */
 int screen2field_c (int c) {
 	return (c-COL_OFFSET+1 - 2*(CW%2))/2 - CW/2;
 }
-#undef CW
 int field2screen_l (int l) {
 	return 0; //TODO: is never used, therefore not implemented
 }
 int field2screen_c (int c) {
-	return (op.scheme->cell_width*c+COL_OFFSET - (op.scheme->cell_width%2));
+	return (CW*c+COL_OFFSET - (CW%2));
 }
+int clicked_emoticon (unsigned char* mouse) {
+move(30,0);printf("%d-%d", mouse[2], mouse[1]);
+	/* :D clicked: TODO: won't work in single-width mode! */
+	return (mouse[2] == LINE_OFFSET-1 && (
+		mouse[1] == (f.w*CW/2)+COL_OFFSET ||
+		mouse[1] == (f.w*CW/2)+COL_OFFSET+1));
+}
+#undef CW
 
 enum esc_states {
 	START,
