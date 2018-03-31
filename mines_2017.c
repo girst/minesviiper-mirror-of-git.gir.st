@@ -548,11 +548,11 @@ void flag_square (int l, int c) {
 	static char modechar[] = {'*', '!', '?'};
 
 	if (f.c[l][c].o != CLOSED) return;
-	/* cycles through flag/quesm/noflag (uses op.mode to detect which ones
-	are allowed) */
+	/* cycle through flag/quesm/noflag: */
 	f.c[l][c].f = (f.c[l][c].f + 1) % (op.mode + 1);
 	if (f.c[l][c].f==FLAG) f.f++;
-	else f.f--; //WARN: breaks on `-q'!
+	else if ((op.mode==FLAG  && f.c[l][c].f==NOFLAG) ||
+	         (op.mode==QUESM && f.c[l][c].f==QUESM)) f.f--;
 	partial_show_minefield (l, c, NORMAL);
 	move (1, op.scheme->cell_width);
 	printf ("[%03d%c]", f.m - f.f, modechar[f.s]);
@@ -776,10 +776,9 @@ int field2screen_c (int c) {
 	return (CW*c+COL_OFFSET - (CW%2));
 }
 int clicked_emoticon (unsigned char* mouse) {
-	/* :D clicked: TODO: won't work in single-width mode! */
 	return (mouse[2] == LINE_OFFSET-1 && (
-		mouse[1] == (f.w*CW/2)+COL_OFFSET ||
-		mouse[1] == (f.w*CW/2)+COL_OFFSET+1));
+		mouse[1] == f.w+COL_OFFSET ||
+		mouse[1] == f.w+COL_OFFSET+1));
 }
 #undef CW
 
