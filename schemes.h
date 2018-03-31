@@ -53,7 +53,7 @@ struct minescheme {
 struct minescheme symbols_mono = {
 	.number = {"　", "１", "２", "３", "４", "５", "６", "７", "８"},
 	.field_closed = "░░",
-	.field_flagged = "\033[7m！\033[0m",//⢕⢕",//⡱⢎",//⣏⣹",//▄▀",//▓▓",//██",//▒▒",
+	.field_flagged = "\033[7m！\033[0m",
 	.field_question = "\033[7m？\033[0m",
 	.mouse_highlight = "▓▓",
 	.mine_normal = "＊",
@@ -82,15 +82,13 @@ struct minescheme symbols_mono = {
 	.border_bottom_r = "═╝",
 
 	.cell_width = 2,
-	.flag_offset = 4, //length of the escape sequece infront of .field_flagged and .field_question for cursor highlighting
+	.flag_offset = 4, /* length of the escape sequece infront of .field_flagged and .field_question for cursor highlighting */
 };
 
 struct minescheme symbols_col1 = {
 	.number = {"　", "\033[94m１\033[m", "\033[32m２\033[m", "\033[31m３\033[m", "\033[34m４\033[m", "\033[33m５\033[m", "\033[36m６\033[m", "\033[30m７\033[m", "\033[97m８\033[m"},
 	.field_closed = "░░",
-	//.field_flagged = "\033[90m⢸\033[31m⠛\033[m",//"▒▒",
-	//.field_flagged = "\033[37m⢸\033[91m⠛\033[m",//"▒▒",
-	.field_flagged = "\033[37m▕\033[91m▀\033[m",//"▒▒",
+	.field_flagged = "\033[37m▕\033[91m▀\033[m",
 	.field_question = "？",
 	.mouse_highlight = "▓▓",
 	.mine_normal = "＊",
@@ -98,7 +96,7 @@ struct minescheme symbols_col1 = {
 	.mine_wrongf = "／",
 	.mine_wrongq = "＼",
 
-	.emoticons = {":D", ":C", "8)", ":o"},
+	.emoticons = {":)", ":(", ":D", ":o"},
 
 	.border_top_l = "╔═",
 	.border_top_m = "══",
