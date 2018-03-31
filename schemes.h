@@ -26,6 +26,19 @@ enum e_emoticons {
 	NUM_EMOT,
 };
 
+enum e_border_lines {
+	B_TOP,
+	B_STATUS,
+	B_DIVIDER,
+	B_FIELD,
+	B_BOTTOM,
+};
+enum e_border_cols {
+	B_LEFT,
+	B_MIDDLE,
+	B_RIGHT,
+};
+
 struct minescheme {
 	char* number[9];
 	char* field_closed;
@@ -39,24 +52,7 @@ struct minescheme {
 
 	char* emoticons[NUM_EMOT];
 
-	char* border_top_l;
-	char* border_top_m;
-	char* border_top_r;
-
-	char* border_status_l;
-	//TODO: better define status line
-	char* border_status_r;
-
-	char* border_spacer_l;
-	char* border_spacer_m;
-	char* border_spacer_r;
-
-	char* border_field_l;
-	char* border_field_r;
-
-	char* border_bottom_l;
-	char* border_bottom_m;
-	char* border_bottom_r;
+	char* border[5][3];
 
 	int cell_width;
 	int flag_offset;
@@ -77,23 +73,11 @@ struct minescheme symbols_mono = {
 
 	.emoticons = {":)", ":(", ":D", ":o"},
 
-	.border_top_l = "╔═",
-	.border_top_m = "══",
-	.border_top_r = "═╗",
-
-	.border_status_l = "║ ",
-	.border_status_r = " ║",
-
-	.border_spacer_l = "╟─",
-	.border_spacer_m = "──",
-	.border_spacer_r = "─╢",
-
-	.border_field_l = "║ ",
-	.border_field_r = " ║",
-
-	.border_bottom_l = "╚═",
-	.border_bottom_m = "═",
-	.border_bottom_r = "═╝",
+	.border = {{"╔═","══","═╗"},
+	           {"║ ","  "," ║"},
+	           {"╟─","──","─╢"},
+	           {"║ ","  "," ║"},
+	           {"╚═","══","═╝"}},
 
 	.cell_width = 2,
 	.flag_offset = 4, /* length of the escape sequece infront of .field_flagged and .field_question for cursor highlighting */
@@ -110,7 +94,7 @@ struct minescheme symbols_col1 = {
 	           SGR(GREY,  "７"),
 	           SGR(WHITE, "８")},
 	.field_closed = "░░",
-	.field_flagged = CGR(GREY,"▕")CGR(xxx,BRED,"▀"),
+	.field_flagged = SGR(GREY,"▕\033["BRED"m▀"),
 	.field_question = "？",
 	.mouse_highlight = "▓▓",
 	.mine_normal = "＊",
@@ -120,27 +104,16 @@ struct minescheme symbols_col1 = {
 
 	.emoticons = {":)", ":(", ":D", ":o"},
 
-	.border_top_l = "╔═",
-	.border_top_m = "══",
-	.border_top_r = "═╗",
-
-	.border_status_l = "║ ",
-	.border_status_r = " ║",
-
-	.border_spacer_l = "╟─",
-	.border_spacer_m = "──",
-	.border_spacer_r = "─╢",
-
-	.border_field_l = "║ ",
-	.border_field_r = " ║",
-
-	.border_bottom_l = "╚═",
-	.border_bottom_m = "═",
-	.border_bottom_r = "═╝",
+	.border = {{"╔═","══","═╗"},
+	           {"║ ","  "," ║"},
+	           {"╟─","──","─╢"},
+	           {"║ ","  "," ║"},
+	           {"╚═","══","═╝"}},
 
 	.cell_width = 2,
 };
 
+//TODO: numbers aren't BOLD after {partial_,}show_minefield()
 struct minescheme symbols_doublewidth = {
 	/* vt220 multilingual character set,
 	see http://vt100.net/docs/vt220-rm/table2-4.html */
@@ -164,23 +137,11 @@ struct minescheme symbols_doublewidth = {
 
 	.emoticons = {":)", ":(", ":D", ":o"},
 
-	.border_top_l = "\033#6\x6c",
-	.border_top_m = "\x71",
-	.border_top_r = "\x6b",
-
-	.border_status_l = "\033#6\x78",
-	.border_status_r = "\x78",
-
-	.border_spacer_l = "\033#6\x74",
-	.border_spacer_m = "\x71",
-	.border_spacer_r = "\x75",
-
-	.border_field_l = "\033#6\x78",
-	.border_field_r = "\x78",
-
-	.border_bottom_l = "\033#6\x6d",
-	.border_bottom_m = "\x71",
-	.border_bottom_r = "\x6a",
+	.border = {{"\033#6\x6c","\x71","\x6b"},
+	           {"\033#6\x78","    ","\x78"},
+	           {"\033#6\x74","\x71","\x75"},
+	           {"\033#6\x78","    ","\x78"},
+	           {"\033#6\x6d","\x71","\x6a"}},
 
 	.cell_width = 1,
 	.init_seq = "\033(0"     /* enable DEC Special Graphics Character Set */

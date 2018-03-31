@@ -37,9 +37,10 @@
 #define MIN(a,b) (a>b?b:a)
 #define MAX(a,b) (a>b?a:b)
 #define CLAMP(a,m,M) (a<m?m:(a>M?M:a))
-#define printm(num, str) for (int i = 0; i < num; i++) fputs (str, stdout)
+#define printm(n, s) for (int _loop = 0; _loop < n; _loop++) fputs (s, stdout)
 #define print(str) fputs (str, stdout)
 #define EMOT(e) op.scheme->emoticons[EMOT_ ## e]
+#define BORDER(l, c) op.scheme->border[B_ ## l][B_ ## c]
 
 struct minecell {
 	unsigned m:2; /* mine?1:killmine?2:0 */
@@ -58,6 +59,7 @@ struct minefield {
 	int t; /* time of game start */
 	int p[2]; /* cursor position {line, col} */
 	int s; /* space mode */
+	int o; /* mode */
 } f;
 
 struct opt {
@@ -66,11 +68,6 @@ struct opt {
 } op;
 
 int alt_screen = 0;
-char* spaces = /* for formatstring in show_minefield(); mouse-max < this */
-	"                                                                "
-	"                                                                "
-	"                                                                "
-	"                                                                ";
 
 struct line_col {
 	int l;
@@ -83,7 +80,7 @@ void cursor_move (int, int);
 void to_next_boundary (int l, int c, char direction);
 int getch (unsigned char*);
 int getctrlseq (unsigned char*);
-int everything_opened ();
+int everything_opened (void);
 int wait_mouse_up (int, int);
 void partial_show_minefield (int, int, int);
 void show_minefield (int);
@@ -94,12 +91,13 @@ void quesm_square (int, int);
 int choord_square (int, int);
 int do_uncover (int*);
 struct minecell** alloc_array (int, int);
-void free_field ();
+void free_field (void);
+char* get_emoticon(int mode);
 int screen2field_l (int);
 int screen2field_c (int);
 int field2screen_l (int);
 int field2screen_c (int);
-void quit();
+void quit(void);
 void signal_handler (int signum);
 void timer_setup (int);
 
@@ -146,18 +144,20 @@ enum mine_types {
 	DEATH_MINE,
 };
 
+#define CW op.scheme->cell_width
 void signal_handler (int signum) {
 	int dtime;
 	switch (signum) {
 	case SIGALRM:
 		dtime = difftime (time(NULL), f.t);
-		move (1, f.w*op.scheme->cell_width-(op.scheme->cell_width%2)-3-(dtime>999));
+		move (1, f.w*CW-(CW%2)-3-(dtime>999));
 		printf ("[%03d]", f.t?dtime:0);
 		break;
 	case SIGINT:
 		exit(128+SIGINT);
 	}
 }
+#undef CW
 
 /* http://users.csc.calpoly.edu/~phatalsk/357/lectures/code/sigalrm.c */
 struct termios saved_term_mode;
@@ -222,7 +222,7 @@ int main (int argc, char** argv) {
 			"    -d(ec charset symbols)\n"
 			"FIELDSPEC:\n"
 			"    WxH[xM] (width 'x' height 'x' mines)\n"
-			"    defaults to 30x16x99; mines will be ~20%% if not given\n"
+			"    defaults to 30x16x99; mines default to ~20%%\n"
 			"\n"
 			"Keybindings:\n"
 			"    hjkl: move left/down/up/right\n"
@@ -261,12 +261,12 @@ int main (int argc, char** argv) {
 		if (TB + FH         > MM) FH = MM    - TB;
 
 		if (n == 1) {
-			fprintf (stderr, "Provide at least width and height to the Fieldspec.\r\n");
+			fprintf (stderr, "Provide at least width and height to "
+				"the fieldspec.\r\n");
 			return 0;
 		} else if (n == 2) {
 			if (f.w < 30) f.m = f.w*f.h*.15625;
 			else f.m = f.w*f.h*.20625;
-			//hc: .35416_
 		}
 #undef CW
 #undef WW
@@ -369,10 +369,10 @@ newgame:
 			/* fallthrough */
 		case 'i': flag_square (f.p[0], f.p[1]); break;
 		case '?':quesm_square (f.p[0], f.p[1]); break;
-		case 'h': cursor_move (f.p[0],    f.p[1]-1 ); break;
-		case 'j': cursor_move (f.p[0]+1,  f.p[1]   ); break;
-		case 'k': cursor_move (f.p[0]-1,  f.p[1]   ); break;
-		case 'l': cursor_move (f.p[0],    f.p[1]+1 ); break;
+		case 'h': cursor_move (f.p[0],   f.p[1]-1 ); break;
+		case 'j': cursor_move (f.p[0]+1, f.p[1]   ); break;
+		case 'k': cursor_move (f.p[0]-1, f.p[1]   ); break;
+		case 'l': cursor_move (f.p[0],   f.p[1]+1 ); break;
 		case 'w': to_next_boundary (f.p[0], f.p[1], '>'); break;
 		case 'b': to_next_boundary (f.p[0], f.p[1], '<'); break;
 		case 'u': to_next_boundary (f.p[0], f.p[1], '^'); break;
@@ -440,7 +440,7 @@ quit:
 	return 0;
 }
 
-void quit () {
+void quit (void) {
 	move(0,0); //move(f.h+LINE_OFFSET+2, 0);
 	/* disable mouse, show cursor */
 	printf ("\033[?9l\033[?25h");
@@ -455,7 +455,7 @@ void quit () {
 /* I haven't won as long as a cell exists, that
     - I haven't opened, and
     - is not a mine */
-int everything_opened () {
+int everything_opened (void) {
 	for (int row = 0; row < f.h; row++)
 		for (int col = 0; col < f.w; col++)
 			if (f.c[row][col].o == CLOSED &&
@@ -487,7 +487,9 @@ int wait_mouse_up (int l, int c) {
 		}
 	}
 
-	move (1, field2screen_c (f.w/2)-1); print (EMOT(SMILE)); //TODO: does not respect mode (SHOWMINES, GAME_WON, GAME_LOST)
+	move (1, field2screen_c (f.w/2)-1);
+	print (EMOT(SMILE)); //TODO:doesn't respect SHOWMINES/GAME_WON/GAME_LOST
+
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
 		partial_show_minefield (l, c, NORMAL);
 	}
@@ -617,7 +619,9 @@ void cursor_move (int l, int c) {
 	move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
 	//fputs (op.scheme->mouse_highlight, stdout);
 
-	/*if (!f.c[f.p[0]][f.p[1]].f)*/ print("\033[7m");//invert unless ! or ?
+	/* invert unless ! or ? (and flag_offset is used in the scheme): */
+	if (!f.c[f.p[0]][f.p[1]].f || !op.scheme->flag_offset)
+		print("\033[7m");
 	partial_show_minefield (f.p[0], f.p[1], HIGHLIGHT);
 	print("\033[0m");//un-invert
 }
@@ -654,7 +658,7 @@ char* cell2schema (int l, int c, int mode) {
 
 	if (mode == SHOWMINES) return (
 		cell.f == FLAG &&  cell.m ? op.scheme->field_flagged+offset:
-		cell.f == FLAG && !cell.m ? op.scheme->mine_wrongf+offset:
+		cell.f == FLAG && !cell.m ? op.scheme->mine_wrongf:
 		cell.m == STD_MINE        ? op.scheme->mine_normal:
 		cell.m == DEATH_MINE      ? op.scheme->mine_death:
 		cell.o == CLOSED          ? op.scheme->field_closed:
@@ -674,52 +678,43 @@ void partial_show_minefield (int l, int c, int mode) {
 	print (cell2schema(l, c, mode));
 }
 
+char* get_emoticon(int mode) {
+return mode==SHOWMINES
+	?everything_opened()
+		?EMOT(WON)
+		:EMOT(DEAD)
+	:EMOT(SMILE);
+}
+
+/* https://zserge.com/blog/c-for-loop-tricks.html */
+#define print_line(which) \
+	for (int _break = (printf(BORDER(which,LEFT)), 1); _break; \
+		_break = 0, printf("%s\r\n", BORDER(which,RIGHT)))
+#define print_border(which, width) \
+	print_line(which) printm (width, BORDER(which,MIDDLE))
 void show_minefield (int mode) {
 	int dtime;
-	int n1, n2; /* determine size of variable width fields */
 	int half_spaces = f.w*op.scheme->cell_width/2;
+	int left_spaces = MAX(0,half_spaces-7-(f.m-f.f>999)+2);
+	int right_spaces = MAX(0,half_spaces-6-(dtime>999));
 	static char modechar[] = {'*', '!', '?'};
 
 	move (0,0);
 
-	if (f.t == 0) {
-		dtime = 0;
-	} else {
-		dtime = difftime (time(NULL), f.t);
-	}
+	dtime = (f.t == 0)?0: difftime (time(NULL), f.t);
 
-	/* first line */
-	print (op.scheme->border_top_l);
-	printm (f.w, op.scheme->border_top_m);
-	printf ("%s\r\n", op.scheme->border_top_r);
-	/* second line */
-	printf("%s[%03d%c]%.*s%s%.*s[%03d]%s\r\n",
-	  op.scheme->border_status_l,
-	  f.m - f.f,
-	  modechar[f.s],
-	  MAX(0,half_spaces-7-(f.m-f.f>999)), spaces,
-	  mode==SHOWMINES?everything_opened()?EMOT(WON):EMOT(DEAD):EMOT(SMILE),
-	  MAX(0,half_spaces-6-(dtime>999)), spaces,
-	  dtime,
-	  op.scheme->border_status_r);
-	/* third line */
-	print (op.scheme->border_spacer_l);
-	printm (f.w, op.scheme->border_spacer_m);
-	print (op.scheme->border_spacer_r);
-	print ("\r\n");
-	/* main body */
-	for (int l = 0; l < f.h; l++) {
-		print (op.scheme->border_field_l);
-		for (int c = 0; c < f.w; c++) {
-			print (cell2schema(l, c, mode));
-		}
-		print (op.scheme->border_field_r); print ("\r\n");
+	print_border(TOP, f.w);
+	print_line(STATUS) {
+		printf("[%03d%c]%*s%*s[%03d]",
+		  /* [ */ f.m - f.f, modechar[f.s], /* ] */
+		  left_spaces, get_emoticon(mode), right_spaces,"",
+		  /* [ */ dtime /* ] */);
 	}
-	/* last line */
-	print (op.scheme->border_bottom_l);
-	printm (f.w*op.scheme->cell_width,op.scheme->border_bottom_m);
-	print (op.scheme->border_bottom_r);
-	print ("\r\n");
+	print_border(DIVIDER, f.w);
+	/* main body */
+	for (int l = 0; l < f.h; l++) print_line(FIELD)
+		printm (f.w, cell2schema(l, _loop, mode));
+	print_border(BOTTOM, f.w);
 }
 
 int get_neighbours (int line, int col, int reduced_mode) {
@@ -754,7 +749,7 @@ unalloc:
 	return NULL;
 }
 
-void free_field () {
+void free_field (void) {
 	if (f.c == NULL) return;
 	for (int l = 0; l < f.h; l++) {
 		free (f.c[l]);
@@ -770,9 +765,11 @@ int screen2field_l (int l) {
 /* some trickery is required to extract the mouse position from the cell width, 
 depending on wheather we are using full width characters or double line width. 
 WARN: tested only with scheme.cell_width = 1 and scheme.cell_width = 2. */
+#define CW op.scheme->cell_width
 int screen2field_c (int c) {
-	return (c-COL_OFFSET+1 - 2*(op.scheme->cell_width%2))/2 - op.scheme->cell_width/2;
+	return (c-COL_OFFSET+1 - 2*(CW%2))/2 - CW/2;
 }
+#undef CW
 int field2screen_l (int l) {
 	return 0; //TODO: is never used, therefore not implemented
 }
