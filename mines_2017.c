@@ -1,5 +1,5 @@
 /*******************************************************************************
- minesviiper 0.3.1459
+ minesviiper 0.3.14592
  By Tobias Girstmair, 2015 - 2018
 
  ./minesviiper 16x16x40
@@ -8,9 +8,9 @@
  MOUSE MODE: - left click to open and choord
              - right click to flag/unflag
  VI MODE:    - hjkl to move cursor left/down/up/right
-             - bduw to jump left/down/up/right by 5 cells
-             - o to open and choord
+             - o/space to open and choord
              - i to flag/unflag
+             - (see `./minesviiper -h' for all keybindings)
 
  GNU GPL v3, see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt
 *******************************************************************************/
@@ -227,6 +227,7 @@ int main (int argc, char** argv) {
 			"    hjkl: move left/down/up/right\n"
 			"    bduw: move to next boundary\n"
 			"    ^Gg$: move to the left/bottom/top/right\n"
+			"    z:    center cursor on minefield\n"
 			"    o:    open/choord\n"
 			"    i:    flag/unflag\n"
 			"    space:modeful cursor (either open or flag)\n"
@@ -389,6 +390,7 @@ newgame:
 		case '$': cursor_move (f.p[0],    f.w-1    ); break;
 		case 'g': cursor_move (0,         f.p[1]   ); break;
 		case 'G': cursor_move (f.h-1,     f.p[1]   ); break;
+		case 'z': cursor_move (f.h/2, f.w/2); break;
 		case 'm':
 			action = tolower(getch(mouse));
 			if (action < 'a' || action > 'z') break;/*out of bound*/
@@ -693,21 +695,19 @@ char* get_emoticon(void) {
 #define print_border(which, width) \
 	print_line(which) printm (width, BORDER(which,MIDDLE))
 void show_minefield (int mode) {
-	int dtime;
+	int dtime = difftime (time(NULL), f.t)*!!f.t;
 	int half_spaces = f.w*op.scheme->cell_width/2;
-	int left_spaces = MAX(0,half_spaces-7-(f.m-f.f>999)+2);
+	int left_spaces = MAX(0,half_spaces-7-(f.m-f.f>999));
 	int right_spaces = MAX(0,half_spaces-6-(dtime>999));
 	static char modechar[] = {'*', '!', '?'};
 
 	move (0,0);
 
-	dtime = (f.t == 0)?0: difftime (time(NULL), f.t);
-
 	print_border(TOP, f.w);
 	print_line(STATUS) {
-		printf("[%03d%c]%*s%*s[%03d]",
+		printf("[%03d%c]%*s%s%*s[%03d]",
 		  /* [ */ f.m - f.f, modechar[f.s], /* ] */
-		  left_spaces, get_emoticon(), right_spaces,"",
+		  left_spaces,"", get_emoticon(), right_spaces,"",
 		  /* [ */ dtime /* ] */);
 	}
 	print_border(DIVIDER, f.w);
@@ -776,7 +776,6 @@ int field2screen_c (int c) {
 	return (CW*c+COL_OFFSET - (CW%2));
 }
 int clicked_emoticon (unsigned char* mouse) {
-move(30,0);printf("%d-%d", mouse[2], mouse[1]);
 	/* :D clicked: TODO: won't work in single-width mode! */
 	return (mouse[2] == LINE_OFFSET-1 && (
 		mouse[1] == (f.w*CW/2)+COL_OFFSET ||

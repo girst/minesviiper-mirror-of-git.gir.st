@@ -113,7 +113,6 @@ struct minescheme symbols_col1 = {
 	.cell_width = 2,
 };
 
-//TODO: numbers aren't BOLD after {partial_,}show_minefield()
 struct minescheme symbols_doublewidth = {
 	/* vt220 multilingual character set,
 	see http://vt100.net/docs/vt220-rm/table2-4.html */
@@ -127,7 +126,7 @@ struct minescheme symbols_doublewidth = {
 	           SGR(BOLD,"7"),
 	           SGR(BOLD,"8")},
 	.field_closed = "\x61",
-	.field_flagged = SGR(BOLD,"!"),
+	.field_flagged = SGR(REV,SGR(BOLD,"!")),
 	.field_question = SGR(BOLD,"?"),
 	.mouse_highlight = SGR(BLINK,"@"),
 	.mine_normal = SGR(BOLD,"*"),
@@ -144,10 +143,11 @@ struct minescheme symbols_doublewidth = {
 	           {"\033#6\x6d","\x71","\x6a"}},
 
 	.cell_width = 1,
+	.flag_offset = 4,
 	.init_seq = "\033(0"     /* enable DEC Special Graphics Character Set */
 	            "\033[?3l",  /* switch to 80 column mode */
-	.reset_seq = "\033(B"    /* enable DEC Multinational Character Set (TODO: check) */
-	             "\033[?3h", /* switch to 132 column mode */
+	.reset_seq = "\033(B"    /* reset to DEC Multinational Character Set */
+	             "\033[?3h", /* switch back to 132 column mode (TODO: shouldn't be hardcoded) */
 };
 
 #undef SGR
