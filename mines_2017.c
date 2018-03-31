@@ -1,3 +1,4 @@
+//TODO: segfault: click outside playfield, then use cursorkeys
 /*******************************************************************************
  minesviiper 0.3.1459
  By Tobias Girstmair, 2015 - 2018
@@ -616,7 +617,7 @@ void cursor_move (int l, int c) {
 	move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
 	//fputs (op.scheme->mouse_highlight, stdout);
 
-	if (!f.c[f.p[0]][f.p[1]].f) print("\033[7m");//invert unless ! or ?
+	/*if (!f.c[f.p[0]][f.p[1]].f)*/ print("\033[7m");//invert unless ! or ?
 	partial_show_minefield (f.p[0], f.p[1], HIGHLIGHT);
 	print("\033[0m");//un-invert
 }
