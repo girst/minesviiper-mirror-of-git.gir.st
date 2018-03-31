@@ -697,9 +697,9 @@ void show_minefield (int mode) {
 	  op.scheme->border_status_l,
 	  f.m - f.f,
 	  modechar[f.s],
-	  half_spaces-7-(f.m-f.f>999), spaces,
+	  MAX(0,half_spaces-7-(f.m-f.f>999)), spaces,
 	  mode==SHOWMINES?everything_opened()?EMOT(WON):EMOT(DEAD):EMOT(SMILE),
-	  half_spaces-6-(dtime>999), spaces,
+	  MAX(0,half_spaces-6-(dtime>999)), spaces,
 	  dtime,
 	  op.scheme->border_status_r);
 	/* third line */

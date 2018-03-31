@@ -4,7 +4,19 @@ contains color/monchrome schemes for tty-mines.
 #ifndef __SCHEMES_H__
 #define __SCHEMES_H__
 
-#define C(color, string) "\033[" #color "m" #string "\033[0m"
+#define SGR(color, string) "\033[" color "m" string "\033[0m"
+#define BOLD    "1"
+#define BLINK   "5"
+#define REV     "7"
+#define RED    "31"
+#define GREEN  "32"
+#define YELLOW "33"
+#define BLUE   "34"
+#define CYAN   "36"
+#define GREY   "37"
+#define BRED   "91"
+#define BBLUE  "94"
+#define WHITE  "97"
 
 enum e_emoticons {
 	EMOT_SMILE,
@@ -55,8 +67,8 @@ struct minescheme {
 struct minescheme symbols_mono = {
 	.number = {"　", "１", "２", "３", "４", "５", "６", "７", "８"},
 	.field_closed = "░░",
-	.field_flagged = "\033[7m！\033[0m",
-	.field_question = "\033[7m？\033[0m",
+	.field_flagged = SGR(REV,"！"),
+	.field_question = SGR(REV,"？"),
 	.mouse_highlight = "▓▓",
 	.mine_normal = "＊",
 	.mine_death = "＃",
@@ -88,13 +100,21 @@ struct minescheme symbols_mono = {
 };
 
 struct minescheme symbols_col1 = {
-	.number = {"　", C(94,１), C(32,２), C(31,３), C(34,４), C(33,５), C(36,６), C(30,７), C(97,８)},
+	.number = {"　",
+	           SGR(BBLUE, "１"),
+	           SGR(GREEN, "２"),
+	           SGR(RED,   "３"),
+	           SGR(BLUE,  "４"),
+	           SGR(YELLOW,"５"),
+	           SGR(CYAN,  "６"),
+	           SGR(GREY,  "７"),
+	           SGR(WHITE, "８")},
 	.field_closed = "░░",
-	.field_flagged = "\033[37m▕\033[91m▀\033[m",
+	.field_flagged = CGR(GREY,"▕")CGR(xxx,BRED,"▀"),
 	.field_question = "？",
 	.mouse_highlight = "▓▓",
 	.mine_normal = "＊",
-	.mine_death = C(31,＊),
+	.mine_death = SGR(RED,"＊"),
 	.mine_wrongf = "／",
 	.mine_wrongq = "＼",
 
@@ -124,15 +144,23 @@ struct minescheme symbols_col1 = {
 struct minescheme symbols_doublewidth = {
 	/* vt220 multilingual character set,
 	see http://vt100.net/docs/vt220-rm/table2-4.html */
-	.number = {" ", C(1,1), C(1,2), C(1,3), C(1,4), C(1,5), C(1,6), C(1,7), C(1,8)},
+	.number = {" ",
+	           SGR(BOLD,"1"),
+	           SGR(BOLD,"2"),
+	           SGR(BOLD,"3"),
+	           SGR(BOLD,"4"),
+	           SGR(BOLD,"5"),
+	           SGR(BOLD,"6"),
+	           SGR(BOLD,"7"),
+	           SGR(BOLD,"8")},
 	.field_closed = "\x61",
-	.field_flagged = C(1,!),
-	.field_question = C(1,?),
-	.mouse_highlight = C(5,@),
-	.mine_normal = C(1,*),
-	.mine_death = C(1,#),
-	.mine_wrongf = C(1,/),
-	.mine_wrongq = C(1,\\),
+	.field_flagged = SGR(BOLD,"!"),
+	.field_question = SGR(BOLD,"?"),
+	.mouse_highlight = SGR(BLINK,"@"),
+	.mine_normal = SGR(BOLD,"*"),
+	.mine_death = SGR(BOLD,"#"),
+	.mine_wrongf = SGR(BOLD,"/"),
+	.mine_wrongq = SGR(BOLD,"\\"),
 
 	.emoticons = {":)", ":(", ":D", ":o"},
 
@@ -155,9 +183,22 @@ struct minescheme symbols_doublewidth = {
 	.border_bottom_r = "\x6a",
 
 	.cell_width = 1,
-	.init_seq = "\033(0", /* enable DEC Special Graphics Character Set */
-	.reset_seq = "\033(B", /* enable DEC Multinational Character Set (TODO: check) */
+	.init_seq = "\033(0"     /* enable DEC Special Graphics Character Set */
+	            "\033[?3l",  /* switch to 80 column mode */
+	.reset_seq = "\033(B"    /* enable DEC Multinational Character Set (TODO: check) */
+	             "\033[?3h", /* switch to 132 column mode */
 };
 
-#undef C
+#undef SGR
+#undef BOLD
+#undef BLINK
+#undef RED
+#undef GREEN
+#undef YELLOW
+#undef BLUE
+#undef CYAN
+#undef GREY
+#undef BRED
+#undef BBLUE
+#undef WHITE
 #endif
