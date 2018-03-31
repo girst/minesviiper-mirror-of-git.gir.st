@@ -4,6 +4,8 @@ contains color/monchrome schemes for tty-mines.
 #ifndef __SCHEMES_H__
 #define __SCHEMES_H__
 
+#define C(color, string) "\033[" #color "m" #string "\033[0m"
+
 enum e_emoticons {
 	EMOT_SMILE,
 	EMOT_DEAD,
@@ -86,13 +88,13 @@ struct minescheme symbols_mono = {
 };
 
 struct minescheme symbols_col1 = {
-	.number = {"　", "\033[94m１\033[m", "\033[32m２\033[m", "\033[31m３\033[m", "\033[34m４\033[m", "\033[33m５\033[m", "\033[36m６\033[m", "\033[30m７\033[m", "\033[97m８\033[m"},
+	.number = {"　", C(94,１), C(32,２), C(31,３), C(34,４), C(33,５), C(36,６), C(30,７), C(97,８)},
 	.field_closed = "░░",
 	.field_flagged = "\033[37m▕\033[91m▀\033[m",
 	.field_question = "？",
 	.mouse_highlight = "▓▓",
 	.mine_normal = "＊",
-	.mine_death = "\033[31m＊\033[m",
+	.mine_death = C(31,＊),
 	.mine_wrongf = "／",
 	.mine_wrongq = "＼",
 
@@ -122,15 +124,15 @@ struct minescheme symbols_col1 = {
 struct minescheme symbols_doublewidth = {
 	/* vt220 multilingual character set,
 	see http://vt100.net/docs/vt220-rm/table2-4.html */
-	.number = {" ", "\033[1m1\033[0m", "\033[1m2\033[0m", "\033[1m3\033[0m", "\033[1m4\033[0m", "\033[1m5\033[0m", "\033[1m6\033[0m", "\033[1m7\033[0m", "\033[1m8\033[0m"},
+	.number = {" ", C(1,1), C(1,2), C(1,3), C(1,4), C(1,5), C(1,6), C(1,7), C(1,8)},
 	.field_closed = "\x61",
-	.field_flagged = "\033[1m!\033[0m",
-	.field_question = "\033[1m?\033[0m",
-	.mouse_highlight = "\033[5m@\033[0m",
-	.mine_normal = "\033[1m*\033[0m",
-	.mine_death = "\033[1m#\033[0m",
-	.mine_wrongf = "\033[1m/\033[0m",
-	.mine_wrongq = "\033[1m\\\033[0m",
+	.field_flagged = C(1,!),
+	.field_question = C(1,?),
+	.mouse_highlight = C(5,@),
+	.mine_normal = C(1,*),
+	.mine_death = C(1,#),
+	.mine_wrongf = C(1,/),
+	.mine_wrongq = C(1,\\),
 
 	.emoticons = {":)", ":(", ":D", ":o"},
 
@@ -156,4 +158,6 @@ struct minescheme symbols_doublewidth = {
 	.init_seq = "\033(0", /* enable DEC Special Graphics Character Set */
 	.reset_seq = "\033(B", /* enable DEC Multinational Character Set (TODO: check) */
 };
+
+#undef C
 #endif
