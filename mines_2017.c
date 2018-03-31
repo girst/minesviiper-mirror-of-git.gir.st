@@ -67,8 +67,6 @@ struct opt {
 	int mode; /* allow flags? quesm? */
 } op;
 
-int alt_screen = 0;
-
 struct line_col {
 	int l;
 	int c;
@@ -92,7 +90,7 @@ int choord_square (int, int);
 int do_uncover (int*);
 struct minecell** alloc_array (int, int);
 void free_field (void);
-char* get_emoticon(int mode);
+char* get_emoticon(void);
 int screen2field_l (int);
 int screen2field_c (int);
 int field2screen_l (int);
@@ -137,6 +135,10 @@ enum event {
 	CTRSEQ_MOUSE_LEFT   = -4,
 	CTRSEQ_MOUSE_MIDDLE = -5,
 	CTRSEQ_MOUSE_RIGHT  = -6,
+	CTRSEQ_CURSOR_LEFT  = -7,
+	CTRSEQ_CURSOR_DOWN  = -8,
+	CTRSEQ_CURSOR_UP    = -9,
+	CTRSEQ_CURSOR_RIGHT = -10,
 };
 enum mine_types {
 	NO_MINE,
@@ -260,10 +262,10 @@ int main (int argc, char** argv) {
 		if (LB + FW*CW      > MM) FW = MM/CW - LB;
 		if (TB + FH         > MM) FH = MM    - TB;
 
-		if (n == 1) {
-			fprintf (stderr, "Provide at least width and height to "
-				"the fieldspec.\r\n");
-			return 0;
+		if (n < 2) {
+			fprintf (stderr, "FIELDSPEC: WxH[xM]"
+			" (width 'x' height 'x' mines)\n");
+			return 1;
 		} else if (n == 2) {
 			if (f.w < 30) f.m = f.w*f.h*.15625;
 			else f.m = f.w*f.h*.20625;
@@ -301,12 +303,12 @@ newgame:
 	int is_newgame = 1;
 	int cheatmode = 0;
 	f.s = MODE_OPEN;
+	f.o = GAME_NEW;
 	struct line_col markers[26];
 	for (int i=26; i; markers[--i].l = -1);
 
 	/* switch to alternate screen */
 	printf ("\033[?47h");
-	alt_screen = 1;
 	/* reset cursor, clear screen */
 	printf ("\033[H\033[J");
 
@@ -369,9 +371,13 @@ newgame:
 			/* fallthrough */
 		case 'i': flag_square (f.p[0], f.p[1]); break;
 		case '?':quesm_square (f.p[0], f.p[1]); break;
+		case CTRSEQ_CURSOR_LEFT:
 		case 'h': cursor_move (f.p[0],   f.p[1]-1 ); break;
+		case CTRSEQ_CURSOR_DOWN:
 		case 'j': cursor_move (f.p[0]+1, f.p[1]   ); break;
+		case CTRSEQ_CURSOR_UP:
 		case 'k': cursor_move (f.p[0]-1, f.p[1]   ); break;
+		case CTRSEQ_CURSOR_RIGHT:
 		case 'l': cursor_move (f.p[0],   f.p[1]+1 ); break;
 		case 'w': to_next_boundary (f.p[0], f.p[1], '>'); break;
 		case 'b': to_next_boundary (f.p[0], f.p[1], '<'); break;
@@ -416,7 +422,12 @@ newgame:
 	}
 
 win:
+	f.o = GAME_WON;
+	goto endgame;
 lose:
+	f.o = GAME_LOST;
+	goto endgame;
+endgame:
 	timer_setup(0); /* stop timer */
 	show_minefield (SHOWMINES);
 	int gotaction;
@@ -441,13 +452,13 @@ quit:
 }
 
 void quit (void) {
-	move(0,0); //move(f.h+LINE_OFFSET+2, 0);
+	//move(0,0); //move(f.h+LINE_OFFSET+2, 0);
 	/* disable mouse, show cursor */
 	printf ("\033[?9l\033[?25h");
 	/* reset charset, if necessary */
 	if (op.scheme && op.scheme->reset_seq) print (op.scheme->reset_seq);
 	/* revert to primary screen */
-	if (alt_screen) printf ("\033[?47l");
+	printf ("\033[?47l");
 	free_field ();
 	restore_term_mode(saved_term_mode);
 }
@@ -488,7 +499,7 @@ int wait_mouse_up (int l, int c) {
 	}
 
 	move (1, field2screen_c (f.w/2)-1);
-	print (EMOT(SMILE)); //TODO:doesn't respect SHOWMINES/GAME_WON/GAME_LOST
+	print (get_emoticon());
 
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
 		partial_show_minefield (l, c, NORMAL);
@@ -678,12 +689,10 @@ void partial_show_minefield (int l, int c, int mode) {
 	print (cell2schema(l, c, mode));
 }
 
-char* get_emoticon(int mode) {
-return mode==SHOWMINES
-	?everything_opened()
-		?EMOT(WON)
-		:EMOT(DEAD)
-	:EMOT(SMILE);
+char* get_emoticon(void) {
+	return f.o==GAME_WON ? EMOT(WON):
+	       f.o==GAME_LOST? EMOT(DEAD):
+		EMOT(SMILE);
 }
 
 /* https://zserge.com/blog/c-for-loop-tricks.html */
@@ -707,7 +716,7 @@ void show_minefield (int mode) {
 	print_line(STATUS) {
 		printf("[%03d%c]%*s%*s[%03d]",
 		  /* [ */ f.m - f.f, modechar[f.s], /* ] */
-		  left_spaces, get_emoticon(mode), right_spaces,"",
+		  left_spaces, get_emoticon(), right_spaces,"",
 		  /* [ */ dtime /* ] */);
 	}
 	print_border(DIVIDER, f.w);
@@ -803,6 +812,10 @@ int getctrlseq (unsigned char* buf) {
 			break;
 		case CSI_SENT:
 			switch (c) {
+			case 'A': return CTRSEQ_CURSOR_UP;
+			case 'B': return CTRSEQ_CURSOR_DOWN;
+			case 'C': return CTRSEQ_CURSOR_RIGHT;
+			case 'D': return CTRSEQ_CURSOR_LEFT;
 			case 'M': state=MOUSE_EVENT; break;
 			default: return CTRSEQ_INVALID;
 			}
