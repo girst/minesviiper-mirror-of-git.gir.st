@@ -55,6 +55,7 @@ struct minescheme {
 	char* border[5][3];
 
 	int cell_width;
+	/* length of the SGR() in front of '!' and '?' for cursor highlight: */
 	int flag_offset;
 	char* init_seq;
 	char* reset_seq;
@@ -80,7 +81,7 @@ struct minescheme symbols_mono = {
 	           {"╚═","══","═╝"}},
 
 	.cell_width = 2,
-	.flag_offset = 4, /* length of the escape sequece infront of .field_flagged and .field_question for cursor highlighting */
+	.flag_offset = 4,
 };
 
 struct minescheme symbols_col1 = {

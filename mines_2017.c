@@ -49,7 +49,6 @@ struct minecell {
 };
 struct minefield {
 	struct minecell **c;
-	//TODO: rename w, h to L, C
 	int w; /* width */
 	int h; /* height */
 	int m; /* number of mines */
@@ -92,7 +91,6 @@ void free_field (void);
 char* get_emoticon(void);
 int screen2field_l (int);
 int screen2field_c (int);
-int field2screen_l (int);
 int field2screen_c (int);
 int clicked_emoticon (unsigned char*);
 void quit(void);
@@ -449,7 +447,7 @@ quit:
 }
 
 void quit (void) {
-	//move(0,0); //move(f.h+LINE_OFFSET+2, 0);
+	move(0,0);
 	printf ("\033[?9l\033[?25h"); /* disable mouse, show cursor */
 	print (op.scheme->reset_seq); /* reset charset, if necessary */
 	printf ("\033[?47l");         /* revert to primary screen */
@@ -621,13 +619,12 @@ void cursor_move (int l, int c) {
 	f.p[0] = CLAMP(l, 0, f.h-1);
 	f.p[1] = CLAMP(c, 0, f.w-1);
 	move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
-	//fputs (op.scheme->mouse_highlight, stdout);
 
 	/* invert unless ! or ? (and flag_offset is used in the scheme): */
 	if (!f.c[f.p[0]][f.p[1]].f || !op.scheme->flag_offset)
 		print("\033[7m");
 	partial_show_minefield (f.p[0], f.p[1], HIGHLIGHT);
-	print("\033[0m");//un-invert
+	print("\033[0m"); /* un-invert */
 }
 
 /* to_next_boundary(): move into the supplied direction until a change in open-
@@ -759,18 +756,13 @@ void free_field (void) {
 	f.c = NULL;
 }
 
+#define CW op.scheme->cell_width
 int screen2field_l (int l) {
 	return (l-LINE_OFFSET) - 1;
 }
-/* some trickery is required to extract the mouse position from the cell width,
-depending on wheather we are using full width characters or double line width.
-WARN: tested only with scheme.cell_width = 1 and scheme.cell_width = 2. */
-#define CW op.scheme->cell_width
 int screen2field_c (int c) {
+	/* this depends on the cell width and only works when it is 1 or 2. */
 	return (c-COL_OFFSET+1 - 2*(CW%2))/2 - CW/2;
-}
-int field2screen_l (int l) {
-	return 0; //TODO: is never used, therefore not implemented
 }
 int field2screen_c (int c) {
 	return (CW*c+COL_OFFSET - (CW%2));
