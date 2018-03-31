@@ -1,4 +1,3 @@
-//TODO: segfault: click outside playfield, then use cursorkeys
 /*******************************************************************************
  minesviiper 0.3.1459
  By Tobias Girstmair, 2015 - 2018
@@ -38,7 +37,7 @@
 #define MAX(a,b) (a>b?a:b)
 #define CLAMP(a,m,M) (a<m?m:(a>M?M:a))
 #define printm(n, s) for (int _loop = 0; _loop < n; _loop++) fputs (s, stdout)
-#define print(str) fputs (str, stdout)
+#define print(str) fputs (str?str:"", stdout)
 #define EMOT(e) op.scheme->emoticons[EMOT_ ## e]
 #define BORDER(l, c) op.scheme->border[B_ ## l][B_ ## c]
 
@@ -187,7 +186,7 @@ int main (int argc, char** argv) {
 	atexit (*quit);
 
 	saction.sa_handler = signal_handler;
-	sigemptyset(&saction.sa_mask); 
+	sigemptyset(&saction.sa_mask);
 	saction.sa_flags   = 0;
 	if (sigaction(SIGALRM, &saction, NULL) < 0 ) {
 		perror("SIGALRM");
@@ -345,17 +344,19 @@ newgame:
 			show_minefield (cheatmode?SHOWMINES:NORMAL);
 			break;
 		case CTRSEQ_MOUSE_LEFT:
-			f.p[0] = screen2field_l (mouse[2]);
-			f.p[1] = screen2field_c (mouse[1]);
 			/* :D clicked: TODO: won't work in single-width mode! */
-			if (mouse[2] == LINE_OFFSET-1 && 
-			   (mouse[1] == f.w+COL_OFFSET || 
+			if (mouse[2] == LINE_OFFSET-1 &&
+			   (mouse[1] == f.w+COL_OFFSET ||
 			    mouse[1] == f.w+COL_OFFSET+1)) {
 				free_field ();
 				goto newgame;
 			}
-			if (f.p[1] < 0 || f.p[1] >= f.w || 
-			    f.p[0] < 0 || f.p[0] >= f.h) break; /*out of bound*/
+			if (screen2field_c (mouse[1]) < 0    ||
+			    screen2field_c (mouse[1]) >= f.w ||
+			    screen2field_l (mouse[2]) <  0   ||
+			    screen2field_l (mouse[2]) >= f.h)   break;
+			f.p[0] = screen2field_l (mouse[2]);
+			f.p[1] = screen2field_c (mouse[1]);
 			/* fallthrough */
 		case 'o':
 			switch (do_uncover(&is_newgame)) {
@@ -364,10 +365,12 @@ newgame:
 			}
 			break;
 		case CTRSEQ_MOUSE_RIGHT:
+			if (screen2field_c (mouse[1]) < 0    ||
+			    screen2field_c (mouse[1]) >= f.w ||
+			    screen2field_l (mouse[2]) <  0   ||
+			    screen2field_l (mouse[2]) >= f.h)   break;
 			f.p[0] = screen2field_l (mouse[2]);
 			f.p[1] = screen2field_c (mouse[1]);
-			if (f.p[1] < 0 || f.p[1] >= f.w || 
-			    f.p[0] < 0 || f.p[0] >= f.h) break; /*out of bound*/
 			/* fallthrough */
 		case 'i': flag_square (f.p[0], f.p[1]); break;
 		case '?':quesm_square (f.p[0], f.p[1]); break;
@@ -421,12 +424,8 @@ newgame:
 		}
 	}
 
-win:
-	f.o = GAME_WON;
-	goto endgame;
-lose:
-	f.o = GAME_LOST;
-	goto endgame;
+win:	f.o = GAME_WON;  goto endgame;
+lose:	f.o = GAME_LOST; goto endgame;
 endgame:
 	timer_setup(0); /* stop timer */
 	show_minefield (SHOWMINES);
@@ -453,12 +452,9 @@ quit:
 
 void quit (void) {
 	//move(0,0); //move(f.h+LINE_OFFSET+2, 0);
-	/* disable mouse, show cursor */
-	printf ("\033[?9l\033[?25h");
-	/* reset charset, if necessary */
-	if (op.scheme && op.scheme->reset_seq) print (op.scheme->reset_seq);
-	/* revert to primary screen */
-	printf ("\033[?47l");
+	printf ("\033[?9l\033[?25h"); /* disable mouse, show cursor */
+	print (op.scheme->reset_seq); /* reset charset, if necessary */
+	printf ("\033[?47l");         /* revert to primary screen */
 	free_field ();
 	restore_term_mode(saved_term_mode);
 }
@@ -470,7 +466,7 @@ int everything_opened (void) {
 	for (int row = 0; row < f.h; row++)
 		for (int col = 0; col < f.w; col++)
 			if (f.c[row][col].o == CLOSED &&
-				f.c[row][col].m == NO_MINE  ) return 0;
+			    f.c[row][col].m == NO_MINE  ) return 0;
 	return 1;
 }
 
@@ -498,8 +494,7 @@ int wait_mouse_up (int l, int c) {
 		}
 	}
 
-	move (1, field2screen_c (f.w/2)-1);
-	print (get_emoticon());
+	move (1, field2screen_c (f.w/2)-1); print (get_emoticon());
 
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
 		partial_show_minefield (l, c, NORMAL);
@@ -555,7 +550,7 @@ void flag_square (int l, int c) {
 	static char modechar[] = {'*', '!', '?'};
 
 	if (f.c[l][c].o != CLOSED) return;
-	/* cycles through flag/quesm/noflag (uses op.mode to detect which ones 
+	/* cycles through flag/quesm/noflag (uses op.mode to detect which ones
 	are allowed) */
 	f.c[l][c].f = (f.c[l][c].f + 1) % (op.mode + 1);
 	if (f.c[l][c].f==FLAG) f.f++;
@@ -653,7 +648,7 @@ void to_next_boundary (int l, int c, char direction) {
 	int new_c = c;
 	switch (direction) {
 	case '>': FIND_NEXT(c, l, i, l, i+1, w, +); break;
-	case '<': FIND_NEXT(c, l, i, l, i-1, w, -); break; 
+	case '<': FIND_NEXT(c, l, i, l, i-1, w, -); break;
 	case '^': FIND_NEXT(l, i, c, i-1, c, h, -); break;
 	case 'v': FIND_NEXT(l, i, c, i+1, c, h, +); break;
 	}
@@ -771,8 +766,8 @@ void free_field (void) {
 int screen2field_l (int l) {
 	return (l-LINE_OFFSET) - 1;
 }
-/* some trickery is required to extract the mouse position from the cell width, 
-depending on wheather we are using full width characters or double line width. 
+/* some trickery is required to extract the mouse position from the cell width,
+depending on wheather we are using full width characters or double line width.
 WARN: tested only with scheme.cell_width = 1 and scheme.cell_width = 2. */
 #define CW op.scheme->cell_width
 int screen2field_c (int c) {
