@@ -71,8 +71,8 @@ struct line_col {
 };
 
 void fill_minefield (int, int);
-void move (int, int);
-void cursor_move (int, int);
+void move_ph (int, int);
+void move_hi (int, int);
 void to_next_boundary (int l, int c, char direction);
 int getch (unsigned char*);
 int getctrlseq (unsigned char*);
@@ -150,7 +150,7 @@ void signal_handler (int signum) {
 	switch (signum) {
 	case SIGALRM:
 		dtime = difftime (time(NULL), f.t);
-		move (1, f.w*CW-(CW%2)-3-(dtime>999));
+		move_ph (1, f.w*CW-(CW%2)-3-(dtime>999));
 		printf ("[%03d]", f.t?dtime:0);
 		break;
 	case SIGINT:
@@ -372,23 +372,23 @@ newgame:
 		case 'i': flag_square (f.p[0], f.p[1]); break;
 		case '?':quesm_square (f.p[0], f.p[1]); break;
 		case CTRSEQ_CURSOR_LEFT:
-		case 'h': cursor_move (f.p[0],   f.p[1]-1 ); break;
+		case 'h': move_hi (f.p[0],   f.p[1]-1 ); break;
 		case CTRSEQ_CURSOR_DOWN:
-		case 'j': cursor_move (f.p[0]+1, f.p[1]   ); break;
+		case 'j': move_hi (f.p[0]+1, f.p[1]   ); break;
 		case CTRSEQ_CURSOR_UP:
-		case 'k': cursor_move (f.p[0]-1, f.p[1]   ); break;
+		case 'k': move_hi (f.p[0]-1, f.p[1]   ); break;
 		case CTRSEQ_CURSOR_RIGHT:
-		case 'l': cursor_move (f.p[0],   f.p[1]+1 ); break;
+		case 'l': move_hi (f.p[0],   f.p[1]+1 ); break;
 		case 'w': to_next_boundary (f.p[0], f.p[1], '>'); break;
 		case 'b': to_next_boundary (f.p[0], f.p[1], '<'); break;
 		case 'u': to_next_boundary (f.p[0], f.p[1], '^'); break;
 		case 'd': to_next_boundary (f.p[0], f.p[1], 'v'); break;
 		case '0': /* fallthrough */
-		case '^': cursor_move (f.p[0],    0        ); break;
-		case '$': cursor_move (f.p[0],    f.w-1    ); break;
-		case 'g': cursor_move (0,         f.p[1]   ); break;
-		case 'G': cursor_move (f.h-1,     f.p[1]   ); break;
-		case 'z': cursor_move (f.h/2, f.w/2); break;
+		case '^': move_hi (f.p[0],    0        ); break;
+		case '$': move_hi (f.p[0],    f.w-1    ); break;
+		case 'g': move_hi (0,         f.p[1]   ); break;
+		case 'G': move_hi (f.h-1,     f.p[1]   ); break;
+		case 'z': move_hi (f.h/2, f.w/2); break;
 		case 'm':
 			action = tolower(getch(mouse));
 			if (action < 'a' || action > 'z') break;/*out of bound*/
@@ -400,7 +400,7 @@ newgame:
 			action = tolower(getch(mouse));
 			if (action < 'a' || action > 'z' /* out of bound or */
 			    || markers[action-'a'].l == -1) break; /* unset */
-			cursor_move (markers[action-'a'].l, markers[action-'a'].c);
+			move_hi (markers[action-'a'].l, markers[action-'a'].c);
 			break;
 		case 'r': /* start a new game */
 			free_field ();
@@ -447,7 +447,7 @@ quit:
 }
 
 void quit (void) {
-	move(0,0);
+	move_ph(0,0);
 	printf ("\033[?9l\033[?25h"); /* disable mouse, show cursor */
 	print (op.scheme->reset_seq); /* reset charset, if necessary */
 	printf ("\033[?47l");         /* revert to primary screen */
@@ -472,11 +472,11 @@ int wait_mouse_up (int l, int c) {
 	int l2, c2;
 
 	/* show :o face */
-	move (1, field2screen_c (f.w/2)-1); print (EMOT(OHH));
+	move_ph (1, field2screen_c (f.w/2)-1); print (EMOT(OHH));
 
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
 		/* show a pushed-in button if cursor is on minefield */
-		move (l+LINE_OFFSET, field2screen_c(c));
+		move_ph (l+LINE_OFFSET, field2screen_c(c));
 		fputs (op.scheme->mouse_highlight, stdout);
 	}
 
@@ -490,7 +490,7 @@ int wait_mouse_up (int l, int c) {
 		}
 	}
 
-	move (1, field2screen_c (f.w/2)-1); print (get_emoticon());
+	move_ph (1, field2screen_c (f.w/2)-1); print (get_emoticon());
 
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
 		partial_show_minefield (l, c, NORMAL);
@@ -552,7 +552,7 @@ void flag_square (int l, int c) {
 	else if ((op.mode==FLAG  && f.c[l][c].f==NOFLAG) ||
 	         (op.mode==QUESM && f.c[l][c].f==QUESM)) f.f--;
 	partial_show_minefield (l, c, NORMAL);
-	move (1, op.scheme->cell_width);
+	move_ph (1, op.scheme->cell_width);
 	printf ("[%03d%c]", f.m - f.f, modechar[f.s]);
 }
 
@@ -608,17 +608,19 @@ void fill_minefield (int l, int c) {
 			f.c[l][c].n = get_neighbours (l, c, NORMAL);
 }
 
-void move (int line, int col) {
+void move_ph (int line, int col) {
+	/* move printhead to zero-indexed position */
 	printf ("\033[%d;%dH", line+1, col+1);
 }
 
-/* absolute coordinates! */
-void cursor_move (int l, int c) {
+void move_hi (int l, int c) {
+	/* move cursor and highlight to absolute coordinates */
+
 	partial_show_minefield (f.p[0], f.p[1], NORMAL);
 	/* update f.p */
 	f.p[0] = CLAMP(l, 0, f.h-1);
 	f.p[1] = CLAMP(c, 0, f.w-1);
-	move (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
+	move_ph (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
 
 	/* invert unless ! or ? (and flag_offset is used in the scheme): */
 	if (!f.c[f.p[0]][f.p[1]].f || !op.scheme->flag_offset)
@@ -648,7 +650,7 @@ void to_next_boundary (int l, int c, char direction) {
 	case 'v': FIND_NEXT(l, i, c, i+1, c, h, +); break;
 	}
 
-	cursor_move (new_l, new_c);
+	move_hi (new_l, new_c);
 }
 #undef FIND_NEXT
 
@@ -674,7 +676,7 @@ char* cell2schema (int l, int c, int mode) {
 }
 
 void partial_show_minefield (int l, int c, int mode) {
-	move (l+LINE_OFFSET, field2screen_c(c));
+	move_ph (l+LINE_OFFSET, field2screen_c(c));
 
 	print (cell2schema(l, c, mode));
 }
@@ -698,7 +700,7 @@ void show_minefield (int mode) {
 	int right_spaces = MAX(0,half_spaces-6-(dtime>999));
 	static char modechar[] = {'*', '!', '?'};
 
-	move (0,0);
+	move_ph (0,0);
 
 	print_border(TOP, f.w);
 	print_line(STATUS) {
