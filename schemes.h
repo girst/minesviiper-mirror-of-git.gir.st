@@ -64,8 +64,8 @@ struct minescheme {
 struct minescheme symbols_mono = {
 	.number = {"　", "１", "２", "３", "４", "５", "６", "７", "８"},
 	.field_closed = "░░",
-	.field_flagged = SGR(REV,"！"),
-	.field_question = SGR(REV,"？"),
+	.field_flagged = "⣸⡛",
+	.field_question = "？",
 	.mouse_highlight = "▓▓",
 	.mine_normal = "＊",
 	.mine_death = "＃",
@@ -81,7 +81,6 @@ struct minescheme symbols_mono = {
 	           {"╚═","══","═╝"}},
 
 	.cell_width = 2,
-	.flag_offset = 4,
 };
 
 struct minescheme symbols_col1 = {
