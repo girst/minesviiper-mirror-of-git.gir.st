@@ -114,8 +114,11 @@ struct minescheme symbols_col1 = {
 };
 
 struct minescheme symbols_doublewidth = {
-	/* vt220 multilingual character set,
-	see http://vt100.net/docs/vt220-rm/table2-4.html */
+	/* for the vt220. 
+	DEC Special Graphics Character Set:
+	    http://vt100.net/docs/vt220-rm/table2-4.html
+	Dynamically Redefinable Character Set:
+	    https://vt100.net/docs/vt220-rm/chapter4.html#S4.16 */
 	.number = {" ",
 	           SGR(BOLD,"1"),
 	           SGR(BOLD,"2"),
@@ -143,11 +146,9 @@ struct minescheme symbols_doublewidth = {
 	           {"\033#6\x6d","\x71","\x6a"}},
 
 	.cell_width = 1,
-	//.init_seq = "\eP0;1;0;4;1;1{P???~^^^/???N???\e\\" //-- simple, exactly half
-	//.init_seq = "\eP0;1;0;4;1;1{PCK]~???/GGKNKGG\e\\" //-- original w/ smaller bottom
-	.init_seq = "\eP0;1;0;4;1;1{P??~^^^^/??N????\e\\" /* declare down-line loadable character set */
-	            "\e(0\e+P\x0f" /* set the DEC Special Graphics Character Set as G0 and our DECDCL */
-	                           /* ("P") as G3 and select G0*/
+	.init_seq = "\eP0;1;0;4;1;1{P" /* config for DRCS "P": 7x10,erase-all */
+	            "??~^^^^/??N????\e\\" /* flag at '!' resembling ▕▀ */
+	            "\e(0\e+P\x0f" /* G0=Graphics, G3="P", lock charset to G0 */
 	            "\033[?3l",  /* switch to 80 column mode */
 	.reset_seq = "\033(B"    /* reset to DEC Multinational Character Set */
 	             "\033[?3h", /* switch back to 132 column mode (TODO: shouldn't be hardcoded) */
