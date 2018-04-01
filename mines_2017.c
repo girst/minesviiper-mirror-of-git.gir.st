@@ -320,7 +320,6 @@ newgame:
 	printf ("\033[?1000h\033[?25l");
 
 	while (1) {
-		int l, c;
 		int action;
 		unsigned char mouse[3];
 
@@ -622,9 +621,7 @@ void move_hi (int l, int c) {
 	f.p[1] = CLAMP(c, 0, f.w-1);
 	move_ph (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
 
-	/* invert unless ! or ? (and flag_offset is used in the scheme): */
-	if (!f.c[f.p[0]][f.p[1]].f || !op.scheme->flag_offset)
-		print("\033[7m");
+	print("\033[7m"); /* reverse video */
 	partial_show_minefield (f.p[0], f.p[1], HIGHLIGHT);
 	print("\033[0m"); /* un-invert */
 }
@@ -634,8 +631,8 @@ state or flag-state is found and move there. falls back to BIG_MOVE. */
 #define FIND_NEXT(X, L, C, L1, C1, MAX, OP) do {\
 	new_ ## X OP ## = BIG_MOVE;\
 	for (int i = X OP 1; i > 0 && i < f.MAX-1; i OP ## OP)\
-		if ((f.c[L ][C ].o<<2 + f.c[L ][C ].f) \
-		 != (f.c[L1][C1].o<<2 + f.c[L1][C1].f)) {\
+		if (((f.c[L ][C ].o<<2) + f.c[L ][C ].f) \
+		 != ((f.c[L1][C1].o<<2) + f.c[L1][C1].f)) {\
 			new_ ## X = i OP 1;\
 			break;\
 		}\
@@ -656,19 +653,17 @@ void to_next_boundary (int l, int c, char direction) {
 
 char* cell2schema (int l, int c, int mode) {
 	struct minecell cell = f.c[l][c];
-	/* move past invert-ctrlsequence when highlighting the cursor: */
-	int offset = ((mode==HIGHLIGHT)*op.scheme->flag_offset);
 
 	if (mode == SHOWMINES) return (
-		cell.f == FLAG &&  cell.m ? op.scheme->field_flagged+offset:
+		cell.f == FLAG &&  cell.m ? op.scheme->field_flagged:
 		cell.f == FLAG && !cell.m ? op.scheme->mine_wrongf:
 		cell.m == STD_MINE        ? op.scheme->mine_normal:
 		cell.m == DEATH_MINE      ? op.scheme->mine_death:
 		cell.o == CLOSED          ? op.scheme->field_closed:
 		/*.......................*/ op.scheme->number[f.c[l][c].n]);
 	 else return (
-		cell.f == FLAG            ? op.scheme->field_flagged+offset:
-		cell.f == QUESM           ? op.scheme->field_question+offset:
+		cell.f == FLAG            ? op.scheme->field_flagged:
+		cell.f == QUESM           ? op.scheme->field_question:
 		cell.o == CLOSED          ? op.scheme->field_closed:
 		cell.m == STD_MINE        ? op.scheme->mine_normal:
 		cell.m == DEATH_MINE      ? op.scheme->mine_death:

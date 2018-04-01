@@ -55,8 +55,6 @@ struct minescheme {
 	char* border[5][3];
 
 	int cell_width;
-	/* length of the SGR() in front of '!' and '?' for cursor highlight: */
-	int flag_offset;
 	char* init_seq;
 	char* reset_seq;
 };
