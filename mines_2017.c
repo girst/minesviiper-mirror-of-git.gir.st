@@ -306,8 +306,8 @@ newgame:
 	/* setup the screen: */
 	saved_term_mode = set_raw_term_mode();
 	atexit (*quit);
-	/* switch to alternate screen */
-	printf ("\033[?47h");
+	/* save cursor and switch to alternate screen */
+	printf ("\033[s\033[?47h");
 	/* reset cursor, clear screen */
 	printf ("\033[H\033[J");
 
@@ -446,10 +446,10 @@ quit:
 }
 
 void quit (void) {
-	move_ph(0,0);
 	printf ("\033[?9l\033[?25h"); /* disable mouse, show cursor */
 	print (op.scheme->reset_seq); /* reset charset, if necessary */
 	printf ("\033[?47l");         /* revert to primary screen */
+	printf ("\033[u");            /* restore cursor position */
 	free_field ();
 	restore_term_mode(saved_term_mode);
 }
@@ -684,7 +684,7 @@ char* get_emoticon(void) {
 
 /* https://zserge.com/blog/c-for-loop-tricks.html */
 #define print_line(which) \
-	for (int _break = (printf(BORDER(which,LEFT)), 1); _break; \
+	for (int _break = (printf("%s", BORDER(which,LEFT)), 1); _break; \
 		_break = 0, printf("%s\r\n", BORDER(which,RIGHT)))
 #define print_border(which, width) \
 	print_line(which) printm (width, BORDER(which,MIDDLE))
