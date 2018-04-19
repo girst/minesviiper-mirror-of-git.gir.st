@@ -45,6 +45,8 @@ struct game {
 	int p[2]; /* cursor position {line, col} */
 	int s; /* space mode */
 	int o; /* mode */
+	int n; /* new game? */
+	int c; /* cheat mode? */
 };
 
 struct opt {
@@ -81,7 +83,6 @@ int screen2field_c (int);
 int field2screen_c (int);
 int clicked_emoticon (unsigned char*);
 void quit(void);
-void print_help(char*);
 int parse_fieldspec(char*);
 void signal_handler (int signum);
 void signal_setup (void);
@@ -104,8 +105,8 @@ enum fieldopenstates {
 	OPENED,
 };
 enum game_states {
-	GAME_INPROGRESS,
 	GAME_NEW,
+	GAME_INPROGRESS,
 	GAME_WON,
 	GAME_LOST,
 };

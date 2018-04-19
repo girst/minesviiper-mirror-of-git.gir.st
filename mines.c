@@ -50,14 +50,13 @@ struct game g;
 struct opt op;
 
 int main (int argc, char** argv) {
-	/* start defaults */
+	/* defaults: */
 	f.w = 30;
 	f.h = 16;
 	f.m = 99;
 	op.scheme = &symbols_mono;
 	op.mode = FLAG;
-	/* end defaults */
-	/* parse options */
+
 	int optget;
 	opterr = 0; /* don't print message on unrecognized option */
 	while ((optget = getopt (argc, argv, "+hnfqcdx")) != -1) {
@@ -72,19 +71,18 @@ int main (int argc, char** argv) {
 			fprintf (stderr, SHORTHELP LONGHELP, argv[0]);
 			return !(optget=='h');
 		}
-	}
-	/* end parse options*/
-	if (optind < argc) { /* parse Fieldspec */
+	} if (optind < argc) { /* parse Fieldspec */
 		if (parse_fieldspec (argv[optind])) {
 			fprintf (stderr, "FIELDSPEC: WxH[xM]"
 			" (width 'x' height 'x' mines)\n");
 			return 1;
 		}
 	}
+
 	/* check boundaries */
 	if (f.m > (f.w-1) * (f.h-1)) {
 		f.m = (f.w-1) * (f.h-1);
-		fprintf (stderr, "too many mines. reduced to %d.\r\n", f.m);
+		fprintf (stderr, "too many mines. reduced to %d.\r\n", f.m); //TODO: doesn't show up
 	}
 	/* end check */
 
@@ -93,15 +91,18 @@ int main (int argc, char** argv) {
 newgame:
 	f.c = alloc_array (f.h, f.w);
 
-	g.f = 0;
-	g.t = 0;
-	g.p[0] = 0;
-	g.p[1] = 0;
+	//g.f = 0;
+	//g.t = 0;
+	//g.p[0] = 0;
+	//g.p[1] = 0;
+	//g.s = MODE_OPEN;
+	//g.o = GAME_NEW;
+	//g.n = 1;
+	//g.c = 0;
+	//memset (&g, 0, sizeof (struct game));
+	//static const struct game reset_game; g = reset_game;
+	g = (const struct game){0};
 
-	int is_newgame = 1;
-	int cheatmode = 0;
-	g.s = MODE_OPEN;
-	g.o = GAME_NEW;
 	struct line_col markers[26];
 	for (int i=26; i; markers[--i].l = -1);
 
@@ -130,7 +131,7 @@ newgame:
 		case ' ':
 			if (g.s == MODE_OPEN ||
 			    f.c[g.p[0]][g.p[1]].o == OPENED) {
-				switch (do_uncover(&is_newgame)) {
+				switch (do_uncover(&(g.n))) {
 					case GAME_LOST: goto lose;
 					case GAME_WON:  goto win;
 				}
@@ -142,7 +143,7 @@ newgame:
 			break;
 		case 'a':
 			g.s = (g.s+1)%(op.mode+1);
-			show_minefield (cheatmode?SHOWMINES:NORMAL);
+			show_minefield (g.c?SHOWMINES:NORMAL);
 			break;
 		case CTRSEQ_MOUSE_LEFT:
 			if (clicked_emoticon(mouse)) {
@@ -157,7 +158,7 @@ newgame:
 			g.p[1] = screen2field_c (mouse[1]);
 			/* fallthrough */
 		case 'o':
-			switch (do_uncover(&is_newgame)) {
+			switch (do_uncover(&(g.n))) {
 				case GAME_LOST: goto lose;
 				case GAME_WON:  goto win;
 			}
@@ -212,13 +213,13 @@ newgame:
 			show_minefield (NORMAL);
 			break;
 		case '\\':
-			if (is_newgame) {
-				is_newgame = 0;
+			if (g.n) {
+				g.n = 0;
 				fill_minefield (-1, -1);
 				timer_setup(1);
 			}
-			show_minefield (cheatmode?NORMAL:SHOWMINES);
-			cheatmode = !cheatmode;
+			show_minefield (g.c?NORMAL:SHOWMINES);
+			g.c = !g.c;
 			break;
 		}
 	}
@@ -264,9 +265,6 @@ int everything_opened (void) {
 			if (f.c[row][col].o == CLOSED &&
 			    f.c[row][col].m == NO_MINE  ) return 0;
 	return 1;
-}
-
-void print_help(char* progname) {
 }
 
 int wait_mouse_up (int l, int c) {
