@@ -1,5 +1,32 @@
 #ifndef __MINES_H__
 #define __MINES_H
+
+#define SHORTHELP "%s [OPTIONS] [FIELDSPEC]\n"
+#define LONGHELP \
+	"OPTIONS:\n" \
+	"    -n(o flagging)\n" \
+	"    -f(lagging)\n" \
+	"    -q(uestion marks)\n" \
+	"    -c(olored symbols)\n" \
+	"    -d(ec charset symbols)\n" \
+	"FIELDSPEC:\n" \
+	"    WxH[xM] (width 'x' height 'x' mines)\n" \
+	"    defaults to 30x16x99; mines default to ~20%%\n" \
+	"\n" \
+	"Keybindings:\n" \
+	"    hjkl: move left/down/up/right\n" \
+	"    bduw: move to next boundary\n" \
+	"    ^Gg$: move to the left/bottom/top/right\n" \
+	"    z:    center cursor on minefield\n" \
+	"    o:    open/choord\n" \
+	"    i:    flag/unflag\n" \
+	"    space:modeful cursor (either open or flag)\n" \
+	"    a:    toggle mode for space (open/flag)\n" \
+	"    mX:   set a mark for letter X\n" \
+	"    `X:   move to mark X (aliased to ')\n" \
+	"    r:    start a new game\n" \
+	"    q:    quit\n"
+
 struct minefield {
 	struct minecell {
 		unsigned m:2; /* mine?1:killmine?2:0 */
@@ -54,6 +81,7 @@ int screen2field_c (int);
 int field2screen_c (int);
 int clicked_emoticon (unsigned char*);
 void quit(void);
+void print_help(char*);
 int parse_fieldspec(char*);
 void signal_handler (int signum);
 void signal_setup (void);

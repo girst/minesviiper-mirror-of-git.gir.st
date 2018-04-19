@@ -68,32 +68,9 @@ int main (int argc, char** argv) {
 		case 'c': op.scheme  = &symbols_col1; break;
 		case 'd': op.scheme  = &symbols_doublewidth; break;
 		case 'h':
-		default:
-			fprintf (stderr, "%s [OPTIONS] [FIELDSPEC]\n"
-			"OPTIONS:\n"
-			"    -n(o flagging)\n"
-			"    -f(lagging)\n"
-			"    -q(uestion marks)\n"
-			"    -c(olored symbols)\n"
-			"    -d(ec charset symbols)\n"
-			"FIELDSPEC:\n"
-			"    WxH[xM] (width 'x' height 'x' mines)\n"
-			"    defaults to 30x16x99; mines default to ~20%%\n"
-			"\n"
-			"Keybindings:\n"
-			"    hjkl: move left/down/up/right\n"
-			"    bduw: move to next boundary\n"
-			"    ^Gg$: move to the left/bottom/top/right\n"
-			"    z:    center cursor on minefield\n"
-			"    o:    open/choord\n"
-			"    i:    flag/unflag\n"
-			"    space:modeful cursor (either open or flag)\n"
-			"    a:    toggle mode for space (open/flag)\n"
-			"    mX:   set a mark for letter X\n"
-			"    `X:   move to mark X (aliased to ')\n"
-			"    r:    start a new game\n"
-			"    q:    quit\n", argv[0]);
-			_exit(optget=='h'?0:1);
+		default: 
+			fprintf (stderr, SHORTHELP LONGHELP, argv[0]);
+			return !(optget=='h');
 		}
 	}
 	/* end parse options*/
@@ -287,6 +264,9 @@ int everything_opened (void) {
 			if (f.c[row][col].o == CLOSED &&
 			    f.c[row][col].m == NO_MINE  ) return 0;
 	return 1;
+}
+
+void print_help(char* progname) {
 }
 
 int wait_mouse_up (int l, int c) {
