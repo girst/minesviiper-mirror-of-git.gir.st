@@ -18,7 +18,10 @@ define TESTS
 	for myFILE in mines_2017.c schemes.h
 	do sed 's/\t/        /g' < $$myFILE|grep -En --color=always '.{81}'|sed "s/^/\x1B[35m$$myFILE:/"
 	done
+
+	echo -e '\n\033[7m-Wall:\033[0m'
+	gcc mines_2017.c -o 2017mines -Wall -Werror -Wextra -pedantic -fdiagnostics-color=always
 endef
 export TESTS
 test:
-	sh -c "$$TESTS" |& less --RAW-CONTROL-CHARS --chop-long-lines
+	bash -c "$$TESTS" 2>&1| less --RAW-CONTROL-CHARS --chop-long-lines
