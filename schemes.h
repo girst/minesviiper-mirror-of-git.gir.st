@@ -127,7 +127,7 @@ struct minescheme symbols_doublewidth = {
 	           SGR(BOLD,"7"),
 	           SGR(BOLD,"8")},
 	.field_closed = "\x61",
-	.field_flagged = SGR(BOLD,"\eO!"),
+	.field_flagged = SGR(BOLD,"\033O!"),
 	.field_question = SGR(BOLD,"?"),
 	.mouse_highlight = SGR(BLINK,"@"),
 	.mine_normal = SGR(BOLD,"*"),
@@ -144,12 +144,12 @@ struct minescheme symbols_doublewidth = {
 	           {"\033#6\x6d","\x71","\x6a"}},
 
 	.cell_width = 1,
-	.init_seq = "\eP0;1;0;4;1;1{P" /* config for DRCS "P": 7x10,erase-all */
-	            "??~^^^^/??N????\e\\" /* flag at '!' resembling ▕▀ */
-	            "\e(0\e+P\x0f" /* G0=Graphics, G3="P", lock charset to G0 */
-	            "\033[?3l",  /* switch to 80 column mode */
+	.init_seq = "\033P0;1;0;4;1;1{P" /*config for DRCS "P": 7x10,erase-all*/
+	            "??~^^^^/??N????\033\\" /* flag at '!' resembling ▕▀ */
+	            "\033(0\033+P\x0f" /*G0=Graphics,G3="P",lock charset to G0*/
+	            "\033[?3l",  /* disable 132 column mode (DECCOLM) */
 	.reset_seq = "\033(B"    /* reset to DEC Multinational Character Set */
-	             "\033[?3h", /* switch back to 132 column mode (TODO: shouldn't be hardcoded) */
+	             "\033[?3h", /* reenable DECCOLM (WARN: unconditionally!) */
 };
 
 #undef SGR
