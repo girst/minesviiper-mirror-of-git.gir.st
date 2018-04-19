@@ -27,6 +27,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "mines.h"
 #include "schemes.h"
 
 #define LINE_OFFSET 3
@@ -41,142 +42,9 @@
 #define EMOT(e) op.scheme->emoticons[EMOT_ ## e]
 #define BORDER(l, c) op.scheme->border[B_ ## l][B_ ## c]
 
-struct minecell {
-	unsigned m:2; /* mine?1:killmine?2:0 */
-	unsigned o:1; /* open?1:0 */
-	unsigned f:2; /* flagged?1:questioned?2:0 */
-	unsigned n:4; /* 0<= neighbours <=8 */
-};
-struct minefield {
-	struct minecell **c;
-	int w; /* width */
-	int h; /* height */
-	int m; /* number of mines */
-
-	int f; /* flags counter */
-	int t; /* time of game start */
-	int p[2]; /* cursor position {line, col} */
-	int s; /* space mode */
-	int o; /* mode */
-} f;
-
-struct opt {
-	struct minescheme* scheme;
-	int mode; /* allow flags? quesm? */
-} op;
-
-struct line_col {
-	int l;
-	int c;
-};
-
-void fill_minefield (int, int);
-void move_ph (int, int);
-void move_hi (int, int);
-void to_next_boundary (int l, int c, char direction);
-int getch (unsigned char*);
-int getctrlseq (unsigned char*);
-int everything_opened (void);
-int wait_mouse_up (int, int);
-void partial_show_minefield (int, int, int);
-void show_minefield (int);
-int get_neighbours (int, int, int);
-int uncover_square (int, int);
-void flag_square (int, int);
-void quesm_square (int, int);
-int choord_square (int, int);
-int do_uncover (int*);
-struct minecell** alloc_array (int, int);
-void free_field (void);
-char* get_emoticon(void);
-int screen2field_l (int);
-int screen2field_c (int);
-int field2screen_c (int);
-int clicked_emoticon (unsigned char*);
-void quit(void);
-void signal_handler (int signum);
-void timer_setup (int);
-
-enum modes {
-	NORMAL,
-	REDUCED,
-	SHOWMINES,
-	HIGHLIGHT,
-};
-enum flagtypes {
-	NOFLAG,
-	FLAG,
-	QUESM,
-};
-enum fieldopenstates {
-	CLOSED,
-	OPENED,
-};
-enum game_states {
-	GAME_INPROGRESS,
-	GAME_NEW,
-	GAME_WON,
-	GAME_LOST,
-};
-enum space_modes {
-	MODE_OPEN,
-	MODE_FLAG,
-	MODE_QUESM,
-};
-enum event {
-	/* for getctrlseq() */
-	CTRSEQ_NULL    =  0,
-	CTRSEQ_EOF     = -1,
-	CTRSEQ_INVALID = -2,
-	CTRSEQ_MOUSE   = -3,
-	/* for getch() */
-	CTRSEQ_MOUSE_LEFT   = -4,
-	CTRSEQ_MOUSE_MIDDLE = -5,
-	CTRSEQ_MOUSE_RIGHT  = -6,
-	CTRSEQ_CURSOR_LEFT  = -7,
-	CTRSEQ_CURSOR_DOWN  = -8,
-	CTRSEQ_CURSOR_UP    = -9,
-	CTRSEQ_CURSOR_RIGHT = -10,
-};
-enum mine_types {
-	NO_MINE,
-	STD_MINE,
-	DEATH_MINE,
-};
-
-#define CW op.scheme->cell_width
-void signal_handler (int signum) {
-	int dtime;
-	switch (signum) {
-	case SIGALRM:
-		dtime = difftime (time(NULL), f.t);
-		move_ph (1, f.w*CW-(CW%2)-3-(dtime>999));
-		printf ("[%03d]", f.t?dtime:0);
-		break;
-	case SIGINT:
-		exit(128+SIGINT);
-	}
-}
-#undef CW
-
-/* http://users.csc.calpoly.edu/~phatalsk/357/lectures/code/sigalrm.c */
-struct termios saved_term_mode;
-struct termios set_raw_term_mode() {
-	struct termios cur_term_mode, raw_term_mode;
-
-	tcgetattr(STDIN_FILENO, &cur_term_mode);
-	raw_term_mode = cur_term_mode;
-	raw_term_mode.c_lflag &= ~(ICANON | ECHO);
-	raw_term_mode.c_cc[VMIN] = 1 ;
-	raw_term_mode.c_cc[VTIME] = 0;
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw_term_mode);
-
-	return cur_term_mode;
-}
-void restore_term_mode(struct termios saved_term_mode) {
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_term_mode);
-}
-
+struct minefield f;
+struct game g;
+struct opt op;
 
 int main (int argc, char** argv) {
 	struct sigaction saction;
@@ -291,20 +159,20 @@ int main (int argc, char** argv) {
 newgame:
 	f.c = alloc_array (f.h, f.w);
 
-	f.f = 0;
-	f.t = 0;
-	f.p[0] = 0;
-	f.p[1] = 0;
+	g.f = 0;
+	g.t = 0;
+	g.p[0] = 0;
+	g.p[1] = 0;
 
 	int is_newgame = 1;
 	int cheatmode = 0;
-	f.s = MODE_OPEN;
-	f.o = GAME_NEW;
+	g.s = MODE_OPEN;
+	g.o = GAME_NEW;
 	struct line_col markers[26];
 	for (int i=26; i; markers[--i].l = -1);
 
 	/* setup the screen: */
-	saved_term_mode = set_raw_term_mode();
+	raw_mode(1);
 	atexit (*quit);
 	/* save cursor and switch to alternate screen */
 	printf ("\033[s\033[?47h");
@@ -326,20 +194,20 @@ newgame:
 		action = getch(mouse);
 		switch (action) {
 		case ' ':
-			if (f.s == MODE_OPEN ||
-			    f.c[f.p[0]][f.p[1]].o == OPENED) {
+			if (g.s == MODE_OPEN ||
+			    f.c[g.p[0]][g.p[1]].o == OPENED) {
 				switch (do_uncover(&is_newgame)) {
 					case GAME_LOST: goto lose;
 					case GAME_WON:  goto win;
 				}
-			} else if (f.s == MODE_FLAG) {
-				flag_square (f.p[0], f.p[1]);
-			} else if (f.s ==  MODE_QUESM) {
-				quesm_square (f.p[0], f.p[1]);
+			} else if (g.s == MODE_FLAG) {
+				flag_square (g.p[0], g.p[1]);
+			} else if (g.s ==  MODE_QUESM) {
+				quesm_square (g.p[0], g.p[1]);
 			}
 			break;
 		case 'a':
-			f.s = (f.s+1)%(op.mode+1);
+			g.s = (g.s+1)%(op.mode+1);
 			show_minefield (cheatmode?SHOWMINES:NORMAL);
 			break;
 		case CTRSEQ_MOUSE_LEFT:
@@ -351,8 +219,8 @@ newgame:
 			    screen2field_c (mouse[1]) >= f.w ||
 			    screen2field_l (mouse[2]) <  0   ||
 			    screen2field_l (mouse[2]) >= f.h)   break;
-			f.p[0] = screen2field_l (mouse[2]);
-			f.p[1] = screen2field_c (mouse[1]);
+			g.p[0] = screen2field_l (mouse[2]);
+			g.p[1] = screen2field_c (mouse[1]);
 			/* fallthrough */
 		case 'o':
 			switch (do_uncover(&is_newgame)) {
@@ -365,34 +233,34 @@ newgame:
 			    screen2field_c (mouse[1]) >= f.w ||
 			    screen2field_l (mouse[2]) <  0   ||
 			    screen2field_l (mouse[2]) >= f.h)   break;
-			f.p[0] = screen2field_l (mouse[2]);
-			f.p[1] = screen2field_c (mouse[1]);
+			g.p[0] = screen2field_l (mouse[2]);
+			g.p[1] = screen2field_c (mouse[1]);
 			/* fallthrough */
-		case 'i': flag_square (f.p[0], f.p[1]); break;
-		case '?':quesm_square (f.p[0], f.p[1]); break;
+		case 'i': flag_square (g.p[0], g.p[1]); break;
+		case '?':quesm_square (g.p[0], g.p[1]); break;
 		case CTRSEQ_CURSOR_LEFT:
-		case 'h': move_hi (f.p[0],   f.p[1]-1 ); break;
+		case 'h': move_hi (g.p[0],   g.p[1]-1 ); break;
 		case CTRSEQ_CURSOR_DOWN:
-		case 'j': move_hi (f.p[0]+1, f.p[1]   ); break;
+		case 'j': move_hi (g.p[0]+1, g.p[1]   ); break;
 		case CTRSEQ_CURSOR_UP:
-		case 'k': move_hi (f.p[0]-1, f.p[1]   ); break;
+		case 'k': move_hi (g.p[0]-1, g.p[1]   ); break;
 		case CTRSEQ_CURSOR_RIGHT:
-		case 'l': move_hi (f.p[0],   f.p[1]+1 ); break;
-		case 'w': to_next_boundary (f.p[0], f.p[1], '>'); break;
-		case 'b': to_next_boundary (f.p[0], f.p[1], '<'); break;
-		case 'u': to_next_boundary (f.p[0], f.p[1], '^'); break;
-		case 'd': to_next_boundary (f.p[0], f.p[1], 'v'); break;
+		case 'l': move_hi (g.p[0],   g.p[1]+1 ); break;
+		case 'w': to_next_boundary (g.p[0], g.p[1], '>'); break;
+		case 'b': to_next_boundary (g.p[0], g.p[1], '<'); break;
+		case 'u': to_next_boundary (g.p[0], g.p[1], '^'); break;
+		case 'd': to_next_boundary (g.p[0], g.p[1], 'v'); break;
 		case '0': /* fallthrough */
-		case '^': move_hi (f.p[0],    0        ); break;
-		case '$': move_hi (f.p[0],    f.w-1    ); break;
-		case 'g': move_hi (0,         f.p[1]   ); break;
-		case 'G': move_hi (f.h-1,     f.p[1]   ); break;
+		case '^': move_hi (g.p[0],    0        ); break;
+		case '$': move_hi (g.p[0],    f.w-1    ); break;
+		case 'g': move_hi (0,         g.p[1]   ); break;
+		case 'G': move_hi (f.h-1,     g.p[1]   ); break;
 		case 'z': move_hi (f.h/2, f.w/2); break;
 		case 'm':
 			action = tolower(getch(mouse));
 			if (action < 'a' || action > 'z') break;/*out of bound*/
-			markers[action-'a'].l = f.p[0];
-			markers[action-'a'].c = f.p[1];
+			markers[action-'a'].l = g.p[0];
+			markers[action-'a'].c = g.p[1];
 			break;
 		case'\'': /* fallthrough */
 		case '`':
@@ -421,8 +289,8 @@ newgame:
 		}
 	}
 
-win:	f.o = GAME_WON;  goto endgame;
-lose:	f.o = GAME_LOST; goto endgame;
+win:	g.o = GAME_WON;  goto endgame;
+lose:	g.o = GAME_LOST; goto endgame;
 endgame:
 	timer_setup(0); /* stop timer */
 	show_minefield (SHOWMINES);
@@ -448,10 +316,9 @@ quit:
 void quit (void) {
 	printf ("\033[?9l\033[?25h"); /* disable mouse, show cursor */
 	print (op.scheme->reset_seq); /* reset charset, if necessary */
-	printf ("\033[?47l");         /* revert to primary screen */
-	printf ("\033[u");            /* restore cursor position */
+	printf ("\033[?47l\033[u"); /*revert to primary screen, restore cursor*/
 	free_field ();
-	restore_term_mode(saved_term_mode);
+	raw_mode(0);
 }
 
 /* I haven't won as long as a cell exists, that
@@ -547,12 +414,12 @@ void flag_square (int l, int c) {
 	if (f.c[l][c].o != CLOSED) return;
 	/* cycle through flag/quesm/noflag: */
 	f.c[l][c].f = (f.c[l][c].f + 1) % (op.mode + 1);
-	if (f.c[l][c].f==FLAG) f.f++;
+	if (f.c[l][c].f==FLAG) g.f++;
 	else if ((op.mode==FLAG  && f.c[l][c].f==NOFLAG) ||
-	         (op.mode==QUESM && f.c[l][c].f==QUESM)) f.f--;
+	         (op.mode==QUESM && f.c[l][c].f==QUESM)) g.f--;
 	partial_show_minefield (l, c, NORMAL);
 	move_ph (1, op.scheme->cell_width);
-	printf ("[%03d%c]", f.m - f.f, modechar[f.s]);
+	printf ("[%03d%c]", f.m - g.f, modechar[g.s]);
 }
 
 void quesm_square (int l, int c) {
@@ -567,15 +434,15 @@ void quesm_square (int l, int c) {
 int do_uncover (int* is_newgame) {
 	if (*is_newgame) {
 		*is_newgame = 0;
-		fill_minefield (f.p[0], f.p[1]);
+		fill_minefield (g.p[0], g.p[1]);
 		timer_setup(1);
 	}
 
-	if (f.c[f.p[0]][f.p[1]].f == FLAG  ) return GAME_INPROGRESS;
-	if (f.c[f.p[0]][f.p[1]].o == CLOSED) {
-		if (uncover_square (f.p[0], f.p[1])) return GAME_LOST;
-	} else if (get_neighbours (f.p[0], f.p[1], 1) == 0) {
-		if (choord_square (f.p[0], f.p[1])) return GAME_LOST;
+	if (f.c[g.p[0]][g.p[1]].f == FLAG  ) return GAME_INPROGRESS;
+	if (f.c[g.p[0]][g.p[1]].o == CLOSED) {
+		if (uncover_square (g.p[0], g.p[1])) return GAME_LOST;
+	} else if (get_neighbours (g.p[0], g.p[1], 1) == 0) {
+		if (choord_square (g.p[0], g.p[1])) return GAME_LOST;
 	}
 	if (everything_opened()) return GAME_WON;
 
@@ -615,14 +482,14 @@ void move_ph (int line, int col) {
 void move_hi (int l, int c) {
 	/* move cursor and highlight to absolute coordinates */
 
-	partial_show_minefield (f.p[0], f.p[1], NORMAL);
-	/* update f.p */
-	f.p[0] = CLAMP(l, 0, f.h-1);
-	f.p[1] = CLAMP(c, 0, f.w-1);
-	move_ph (f.p[0]+LINE_OFFSET, field2screen_c(f.p[1]));
+	partial_show_minefield (g.p[0], g.p[1], NORMAL);
+	/* update g.p */
+	g.p[0] = CLAMP(l, 0, f.h-1);
+	g.p[1] = CLAMP(c, 0, f.w-1);
+	move_ph (g.p[0]+LINE_OFFSET, field2screen_c(g.p[1]));
 
 	print("\033[7m"); /* reverse video */
-	partial_show_minefield (f.p[0], f.p[1], HIGHLIGHT);
+	partial_show_minefield (g.p[0], g.p[1], HIGHLIGHT);
 	print("\033[0m"); /* un-invert */
 }
 
@@ -677,8 +544,8 @@ void partial_show_minefield (int l, int c, int mode) {
 }
 
 char* get_emoticon(void) {
-	return f.o==GAME_WON ? EMOT(WON):
-	       f.o==GAME_LOST? EMOT(DEAD):
+	return g.o==GAME_WON ? EMOT(WON):
+	       g.o==GAME_LOST? EMOT(DEAD):
 		EMOT(SMILE);
 }
 
@@ -689,9 +556,9 @@ char* get_emoticon(void) {
 #define print_border(which, width) \
 	print_line(which) printm (width, BORDER(which,MIDDLE))
 void show_minefield (int mode) {
-	int dtime = difftime (time(NULL), f.t)*!!f.t;
+	int dtime = difftime (time(NULL), g.t)*!!g.t;
 	int half_spaces = f.w*op.scheme->cell_width/2;
-	int left_spaces = MAX(0,half_spaces-7-(f.m-f.f>999));
+	int left_spaces = MAX(0,half_spaces-7-(f.m-g.f>999));
 	int right_spaces = MAX(0,half_spaces-6-(dtime>999));
 	static char modechar[] = {'*', '!', '?'};
 
@@ -700,7 +567,7 @@ void show_minefield (int mode) {
 	print_border(TOP, f.w);
 	print_line(STATUS) {
 		printf("[%03d%c]%*s%s%*s[%03d]",
-		  /* [ */ f.m - f.f, modechar[f.s], /* ] */
+		  /* [ */ f.m - g.f, modechar[g.s], /* ] */
 		  left_spaces,"", get_emoticon(), right_spaces,"",
 		  /* [ */ dtime /* ] */);
 	}
@@ -849,7 +716,7 @@ void timer_setup (int enable) {
 	tbuf.it_interval.tv_usec = 0;
 
 	if (enable) {
-		f.t = time(NULL);
+		g.t = time(NULL);
 		tbuf.it_value.tv_sec  = 1;
 		tbuf.it_value.tv_usec = 0;
 		if (setitimer(ITIMER_REAL, &tbuf, NULL) == -1) {
@@ -865,4 +732,36 @@ void timer_setup (int enable) {
 		}
 	}
 
+}
+
+#define CW op.scheme->cell_width
+void signal_handler (int signum) {
+	int dtime;
+	switch (signum) {
+	case SIGALRM:
+		dtime = difftime (time(NULL), g.t);
+		move_ph (1, f.w*CW-(CW%2)-3-(dtime>999));
+		printf ("[%03d]", g.t?dtime:0);
+		break;
+	case SIGINT:
+		exit(128+SIGINT);
+	}
+}
+#undef CW
+
+/* http://users.csc.calpoly.edu/~phatalsk/357/lectures/code/sigalrm.c */
+void raw_mode(int mode) {
+	static struct termios saved_term_mode;
+	struct termios raw_term_mode;
+
+	if (mode == 1) {
+		tcgetattr(STDIN_FILENO, &saved_term_mode);
+		raw_term_mode = saved_term_mode;
+		raw_term_mode.c_lflag &= ~(ICANON | ECHO);
+		raw_term_mode.c_cc[VMIN] = 1 ;
+		raw_term_mode.c_cc[VTIME] = 0;
+		tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw_term_mode);
+	} else {
+		tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_term_mode);
+	}
 }
