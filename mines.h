@@ -54,7 +54,9 @@ int screen2field_c (int);
 int field2screen_c (int);
 int clicked_emoticon (unsigned char*);
 void quit(void);
+int parse_fieldspec(char*);
 void signal_handler (int signum);
+void signal_setup (void);
 void timer_setup (int);
 void raw_mode(int mode);
 

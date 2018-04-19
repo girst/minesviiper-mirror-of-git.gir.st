@@ -31,8 +31,10 @@
 #include "schemes.h"
 
 #define LINE_OFFSET 3
+#define LINES_AFTER 2
 #define COL_OFFSET 2
 #define BIG_MOVE 5
+#define MOUSE_MAX 231
 
 #define MIN(a,b) (a>b?b:a)
 #define MAX(a,b) (a>b?a:b)
@@ -41,28 +43,17 @@
 #define print(str) fputs (str?str:"", stdout)
 #define EMOT(e) op.scheme->emoticons[EMOT_ ## e]
 #define BORDER(l, c) op.scheme->border[B_ ## l][B_ ## c]
+#define CW op.scheme->cell_width /* for brevity */
 
 struct minefield f;
 struct game g;
 struct opt op;
 
 int main (int argc, char** argv) {
-	struct sigaction saction;
-
-	saction.sa_handler = signal_handler;
-	sigemptyset(&saction.sa_mask);
-	saction.sa_flags   = 0;
-	if (sigaction(SIGALRM, &saction, NULL) < 0 ) {
-		perror("SIGALRM");
-		exit(1);
-	}
-
-	if (sigaction(SIGINT, &saction, NULL) < 0 ) {
-		perror ("SIGINT");
-		exit (1);
-	}
-	/* end screen setup */
-
+	/* start defaults */
+	f.w = 30;
+	f.h = 16;
+	f.m = 99;
 	op.scheme = &symbols_mono;
 	op.mode = FLAG;
 	/* end defaults */
@@ -107,47 +98,11 @@ int main (int argc, char** argv) {
 	}
 	/* end parse options*/
 	if (optind < argc) { /* parse Fieldspec */
-		int n = sscanf (argv[optind], "%dx%dx%d", &f.w, &f.h, &f.m);
-		struct winsize w;
-		ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-#define CW op.scheme->cell_width
-#define WW w.ws_col /*window width  */
-#define WH w.ws_row /*window height */
-#define FW f.w      /* field width  */
-#define FH f.h      /* field height */
-#define MM 231      /* mouse maximum*/
-#define LB 2        /*  left border */
-#define RB 2        /* right border */
-#define TB 3        /*   top border */
-#define BB 2        /*bottom border */
-
-		if (LB + FW*CW + RB > WW) FW = WW/CW - (LB+RB);
-		if (TB + FH    + BB > WH) FH = WH    - (TB+BB);
-		if (LB + FW*CW      > MM) FW = MM/CW - LB;
-		if (TB + FH         > MM) FH = MM    - TB;
-
-		if (n < 2) {
+		if (parse_fieldspec (argv[optind])) {
 			fprintf (stderr, "FIELDSPEC: WxH[xM]"
 			" (width 'x' height 'x' mines)\n");
 			return 1;
-		} else if (n == 2) {
-			if (f.w < 30) f.m = f.w*f.h*.15625;
-			else f.m = f.w*f.h*.20625;
 		}
-#undef CW
-#undef WW
-#undef WH
-#undef FW
-#undef FH
-#undef MM
-#undef LB
-#undef RB
-#undef TB
-#undef BB
-	} else { /* use defaults */
-		f.w = 30;
-		f.h = 16;
-		f.m = 99;
 	}
 	/* check boundaries */
 	if (f.m > (f.w-1) * (f.h-1)) {
@@ -155,6 +110,8 @@ int main (int argc, char** argv) {
 		fprintf (stderr, "too many mines. reduced to %d.\r\n", f.m);
 	}
 	/* end check */
+
+	signal_setup();
 
 newgame:
 	f.c = alloc_array (f.h, f.w);
@@ -620,7 +577,6 @@ void free_field (void) {
 	f.c = NULL;
 }
 
-#define CW op.scheme->cell_width
 int screen2field_l (int l) {
 	return (l-LINE_OFFSET) - 1;
 }
@@ -636,7 +592,6 @@ int clicked_emoticon (unsigned char* mouse) {
 		mouse[1] == f.w+COL_OFFSET ||
 		mouse[1] == f.w+COL_OFFSET+1));
 }
-#undef CW
 
 enum esc_states {
 	START,
@@ -710,6 +665,32 @@ compatible with the ncurses implementation of same name */
 	return action;
 }
 
+int parse_fieldspec(char* str) {
+	/* parses the FIELDSPEC (WxHxM); returns 1 on error */
+	int n = sscanf (str, "%dx%dx%d", &f.w, &f.h, &f.m);
+	struct winsize w;
+	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+
+	/* clamp field size to terminal size and mouse maximum: */
+	if (COL_OFFSET + f.w*CW + COL_OFFSET > w.ws_col)
+		f.w = w.ws_col/CW - (COL_OFFSET+COL_OFFSET);
+	if (LINE_OFFSET + f.h + LINES_AFTER > w.ws_row)
+		f.h = w.ws_row - (LINE_OFFSET+LINES_AFTER);
+	if (COL_OFFSET + f.w*CW > MOUSE_MAX)
+		f.w = MOUSE_MAX/CW - COL_OFFSET;
+	if (LINE_OFFSET + f.h > MOUSE_MAX)
+		f.h = MOUSE_MAX - LINE_OFFSET;
+
+	if (n < 2) {
+		return 1; /* error */
+	} else if (n == 2) {
+		if (f.w < 30) f.m = f.w*f.h*.15625;
+		else f.m = f.w*f.h*.20625;
+	}
+
+	return 0;
+}
+
 void timer_setup (int enable) {
 	static struct itimerval tbuf;
 	tbuf.it_interval.tv_sec  = 1;
@@ -734,7 +715,23 @@ void timer_setup (int enable) {
 
 }
 
-#define CW op.scheme->cell_width
+void signal_setup (void) {
+	struct sigaction saction;
+
+	saction.sa_handler = signal_handler;
+	sigemptyset(&saction.sa_mask);
+	saction.sa_flags   = 0;
+	if (sigaction(SIGALRM, &saction, NULL) < 0 ) {
+		perror("SIGALRM");
+		exit(1);
+	}
+
+	if (sigaction(SIGINT, &saction, NULL) < 0 ) {
+		perror ("SIGINT");
+		exit (1);
+	}
+}
+
 void signal_handler (int signum) {
 	int dtime;
 	switch (signum) {
@@ -747,7 +744,6 @@ void signal_handler (int signum) {
 		exit(128+SIGINT);
 	}
 }
-#undef CW
 
 /* http://users.csc.calpoly.edu/~phatalsk/357/lectures/code/sigalrm.c */
 void raw_mode(int mode) {
