@@ -62,7 +62,7 @@ struct line_col {
 void fill_minefield (int, int);
 void move_ph (int, int);
 void move_hi (int, int);
-void to_next_boundary (int l, int c, char direction);
+void to_next_boundary (int, int, char);
 int getch (unsigned char*);
 int getctrlseq (unsigned char*);
 int everything_opened (void);
@@ -84,10 +84,11 @@ int field2screen_c (int);
 int clicked_emoticon (unsigned char*);
 void quit(void);
 int parse_fieldspec(char*);
-void signal_handler (int signum);
+void signal_handler (int);
 void signal_setup (void);
 void timer_setup (int);
-void raw_mode(int mode);
+void screen_setup (int);
+void raw_mode(int);
 
 enum modes {
 	NORMAL,
@@ -105,13 +106,13 @@ enum fieldopenstates {
 	OPENED,
 };
 enum game_states {
-	GAME_NEW,
+	GAME_NEW = 0, /* expected zero while resetting `g' */
 	GAME_INPROGRESS,
 	GAME_WON,
 	GAME_LOST,
 };
 enum space_modes {
-	MODE_OPEN,
+	MODE_OPEN = 0, /* expected zero while resetting `g' */
 	MODE_FLAG,
 	MODE_QUESM,
 };

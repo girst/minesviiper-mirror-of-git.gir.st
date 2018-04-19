@@ -87,40 +87,17 @@ int main (int argc, char** argv) {
 	/* end check */
 
 	signal_setup();
+	screen_setup(1);
+	atexit (*quit);
 
 newgame:
 	f.c = alloc_array (f.h, f.w);
-
-	//g.f = 0;
-	//g.t = 0;
-	//g.p[0] = 0;
-	//g.p[1] = 0;
-	//g.s = MODE_OPEN;
-	//g.o = GAME_NEW;
-	//g.n = 1;
-	//g.c = 0;
-	//memset (&g, 0, sizeof (struct game));
-	//static const struct game reset_game; g = reset_game;
-	g = (const struct game){0};
+	g = (const struct game){0}; /* reset all game-specific parameters */
 
 	struct line_col markers[26];
 	for (int i=26; i; markers[--i].l = -1);
 
-	/* setup the screen: */
-	raw_mode(1);
-	atexit (*quit);
-	/* save cursor and switch to alternate screen */
-	printf ("\033[s\033[?47h");
-	/* reset cursor, clear screen */
-	printf ("\033[H\033[J");
-
-	/* swich charset, if necessary */
-	if (op.scheme->init_seq != NULL) print (op.scheme->init_seq);
-
 	show_minefield (NORMAL);
-
-	/* enable mouse, hide cursor */
-	printf ("\033[?1000h\033[?25l");
 
 	while (1) {
 		int action;
@@ -138,8 +115,7 @@ newgame:
 			} else if (g.s == MODE_FLAG) {
 				flag_square (g.p[0], g.p[1]);
 			} else if (g.s ==  MODE_QUESM) {
-				quesm_square (g.p[0], g.p[1]);
-			}
+				quesm_square (g.p[0], g.p[1]); }
 			break;
 		case 'a':
 			g.s = (g.s+1)%(op.mode+1);
@@ -213,11 +189,7 @@ newgame:
 			show_minefield (NORMAL);
 			break;
 		case '\\':
-			if (g.n) {
-				g.n = 0;
-				fill_minefield (-1, -1);
-				timer_setup(1);
-			}
+			if (g.n == GAME_NEW) break; /* must open a cell first */
 			show_minefield (g.c?NORMAL:SHOWMINES);
 			g.c = !g.c;
 			break;
@@ -249,11 +221,8 @@ quit:
 }
 
 void quit (void) {
-	printf ("\033[?9l\033[?25h"); /* disable mouse, show cursor */
-	print (op.scheme->reset_seq); /* reset charset, if necessary */
-	printf ("\033[?47l\033[u"); /*revert to primary screen, restore cursor*/
+	screen_setup(0);
 	free_field ();
-	raw_mode(0);
 }
 
 /* I haven't won as long as a cell exists, that
@@ -367,8 +336,8 @@ void quesm_square (int l, int c) {
 }
 
 int do_uncover (int* is_newgame) {
-	if (*is_newgame) {
-		*is_newgame = 0;
+	if (*is_newgame == GAME_NEW) {
+		*is_newgame = GAME_INPROGRESS;
 		fill_minefield (g.p[0], g.p[1]);
 		timer_setup(1);
 	}
@@ -723,12 +692,27 @@ void signal_handler (int signum) {
 	}
 }
 
+void screen_setup (int enable) {
+	if (enable) {
+		raw_mode(1);
+		printf ("\033[s\033[?47h"); /* save cursor, alternate screen */
+		printf ("\033[H\033[J"); /* reset cursor, clear screen */
+		printf ("\033[?1000h\033[?25l"); /* enable mouse, hide cursor */
+		print (op.scheme->init_seq); /* swich charset, if necessary */
+	} else {
+		print (op.scheme->reset_seq); /* reset charset, if necessary */
+		printf ("\033[?9l\033[?25h"); /* disable mouse, show cursor */
+		printf ("\033[?47l\033[u"); /* primary screen, restore cursor */
+		raw_mode(0);
+	}
+}
+
 /* http://users.csc.calpoly.edu/~phatalsk/357/lectures/code/sigalrm.c */
-void raw_mode(int mode) {
+void raw_mode(int enable) {
 	static struct termios saved_term_mode;
 	struct termios raw_term_mode;
 
-	if (mode == 1) {
+	if (enable) {
 		tcgetattr(STDIN_FILENO, &saved_term_mode);
 		raw_term_mode = saved_term_mode;
 		raw_term_mode.c_lflag &= ~(ICANON | ECHO);
