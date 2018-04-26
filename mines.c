@@ -79,38 +79,64 @@ int main (int argc, char** argv) {
 		}
 	}
 
-	/* check boundaries */
-	if (f.m > (f.w-1) * (f.h-1)) {
-		f.m = (f.w-1) * (f.h-1);
-		fprintf (stderr, "too many mines. reduced to %d.\r\n", f.m); //TODO: doesn't show up
-	}
-	/* end check */
-
 	signal_setup();
 	screen_setup(1);
 	atexit (*quit);
 
+	/* check boundaries */
+	if (f.m > (f.w-1) * (f.h-1)) {
+		move_ph (LINE_OFFSET+f.h+LINES_AFTER-1,0);
+		f.m = (f.w-1) * (f.h-1);
+		fprintf (stdout, "too many mines. reduced to %d.\r\n", f.m); //TODO: doesn't show up
+	}
+	/* end check */
+
 newgame:
+	switch (minesviiper()) {
+	case GAME_NEW: goto newgame;
+	case GAME_WON: g.o = GAME_WON; break;
+	case GAME_LOST:g.o = GAME_LOST;break;
+	}
+
+	timer_setup(0); /* stop timer */
+	show_minefield (SHOWMINES);
+	int gotaction;
+	do {
+		unsigned char mouse[3];
+		gotaction = getch(mouse);
+		if (gotaction==CTRSEQ_MOUSE_LEFT && clicked_emoticon(mouse)) {
+			free_field ();
+			goto newgame;
+		} else if (gotaction == 'r') {
+			free_field ();
+			goto newgame;
+		} else if (gotaction == 'q') {
+			goto quit;
+		}
+	} while (1);
+
+quit:
+	return 0;
+}
+
+int minesviiper(void) {
 	f.c = alloc_array (f.h, f.w);
 	g = (const struct game){0}; /* reset all game-specific parameters */
-
-	struct line_col markers[26];
-	for (int i=26; i; markers[--i].l = -1);
+	for (int i=26; i; g.m[--i].l = -1);
 
 	show_minefield (NORMAL);
 
 	while (1) {
 		int action;
-		unsigned char mouse[3];
 
-		action = getch(mouse);
+		action = getch_wrapper();
 		switch (action) {
 		case ' ':
 			if (g.s == MODE_OPEN ||
 			    f.c[g.p[0]][g.p[1]].o == OPENED) {
 				switch (do_uncover(&(g.n))) {
-					case GAME_LOST: goto lose;
-					case GAME_WON:  goto win;
+					case GAME_LOST: return GAME_LOST;
+					case GAME_WON:  return GAME_WON;
 				}
 			} else if (g.s == MODE_FLAG) {
 				flag_square (g.p[0], g.p[1]);
@@ -122,31 +148,13 @@ newgame:
 			show_minefield (g.c?SHOWMINES:NORMAL);
 			break;
 		case CTRSEQ_MOUSE_LEFT:
-			if (clicked_emoticon(mouse)) {
-				free_field ();
-				goto newgame;
-			}
-			if (screen2field_c (mouse[1]) < 0    ||
-			    screen2field_c (mouse[1]) >= f.w ||
-			    screen2field_l (mouse[2]) <  0   ||
-			    screen2field_l (mouse[2]) >= f.h)   break;
-			g.p[0] = screen2field_l (mouse[2]);
-			g.p[1] = screen2field_c (mouse[1]);
-			/* fallthrough */
 		case 'o':
 			switch (do_uncover(&(g.n))) {
-				case GAME_LOST: goto lose;
-				case GAME_WON:  goto win;
+				case GAME_LOST: return GAME_LOST;
+				case GAME_WON:  return GAME_WON;
 			}
 			break;
 		case CTRSEQ_MOUSE_RIGHT:
-			if (screen2field_c (mouse[1]) < 0    ||
-			    screen2field_c (mouse[1]) >= f.w ||
-			    screen2field_l (mouse[2]) <  0   ||
-			    screen2field_l (mouse[2]) >= f.h)   break;
-			g.p[0] = screen2field_l (mouse[2]);
-			g.p[1] = screen2field_c (mouse[1]);
-			/* fallthrough */
 		case 'i': flag_square (g.p[0], g.p[1]); break;
 		case '?':quesm_square (g.p[0], g.p[1]); break;
 		case CTRSEQ_CURSOR_LEFT:
@@ -168,23 +176,24 @@ newgame:
 		case 'G': move_hi (f.h-1,     g.p[1]   ); break;
 		case 'z': move_hi (f.h/2, f.w/2); break;
 		case 'm':
-			action = tolower(getch(mouse));
+			action = tolower(getch_wrapper());
 			if (action < 'a' || action > 'z') break;/*out of bound*/
-			markers[action-'a'].l = g.p[0];
-			markers[action-'a'].c = g.p[1];
+			g.m[action-'a'].l = g.p[0];
+			g.m[action-'a'].c = g.p[1];
 			break;
 		case'\'': /* fallthrough */
 		case '`':
-			action = tolower(getch(mouse));
+			action = tolower(getch_wrapper());
 			if (action < 'a' || action > 'z' /* out of bound or */
-			    || markers[action-'a'].l == -1) break; /* unset */
-			move_hi (markers[action-'a'].l, markers[action-'a'].c);
+			    || g.m[action-'a'].l == -1) break; /* unset */
+			move_hi (g.m[action-'a'].l, g.m[action-'a'].c);
 			break;
+		case WRAPPER_EMOTICON:
 		case 'r': /* start a new game */
 			free_field ();
-			goto newgame;
+			return GAME_NEW;
 		case 'q':
-			goto quit;
+			return GAME_QUIT;
 		case '\014': /* Ctrl-L -- redraw */
 			show_minefield (NORMAL);
 			break;
@@ -196,28 +205,6 @@ newgame:
 		}
 	}
 
-win:	g.o = GAME_WON;  goto endgame;
-lose:	g.o = GAME_LOST; goto endgame;
-endgame:
-	timer_setup(0); /* stop timer */
-	show_minefield (SHOWMINES);
-	int gotaction;
-	do {
-		unsigned char mouse[3];
-		gotaction = getch(mouse);
-		if (gotaction==CTRSEQ_MOUSE_LEFT && clicked_emoticon(mouse)) {
-			free_field ();
-			goto newgame;
-		} else if (gotaction == 'r') {
-			free_field ();
-			goto newgame;
-		} else if (gotaction == 'q') {
-			goto quit;
-		}
-	} while (1);
-
-quit:
-	return 0;
 }
 
 void quit (void) {
@@ -610,6 +597,29 @@ compatible with the ncurses implementation of same name */
 	}
 
 	return action;
+}
+
+int getch_wrapper (void) {
+	unsigned char mouse[3];
+	int c = getch(mouse);
+
+	if (c == CTRSEQ_MOUSE_LEFT || c == CTRSEQ_MOUSE_RIGHT) {
+		if (clicked_emoticon(mouse))
+			return WRAPPER_EMOTICON;
+
+		if (screen2field_c (mouse[1]) < 0
+		 || screen2field_c (mouse[1]) >= f.w
+		 || screen2field_l (mouse[2]) < 0
+		 || screen2field_l (mouse[2]) >= f.h)
+			return CTRSEQ_INVALID;
+
+		g.p[0] = screen2field_l (mouse[2]);
+		g.p[1] = screen2field_c (mouse[1]);
+
+		return c; /* CTRSEQ_MOUSE_LEFT || CTRSEQ_MOUSE_RIGHT */
+	}
+
+	return c;
 }
 
 int parse_fieldspec(char* str) {

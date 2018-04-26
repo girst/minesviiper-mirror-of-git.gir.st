@@ -47,6 +47,10 @@ struct game {
 	int o; /* mode */
 	int n; /* new game? */
 	int c; /* cheat mode? */
+	struct line_col {
+		int l;
+		int c;
+	} m[26]; /* markers, a-z */
 };
 
 struct opt {
@@ -54,16 +58,13 @@ struct opt {
 	int mode; /* allow flags? quesm? */
 };
 
-struct line_col {
-	int l;
-	int c;
-};
-
+int minesviiper(void);
 void fill_minefield (int, int);
 void move_ph (int, int);
 void move_hi (int, int);
 void to_next_boundary (int, int, char);
 int getch (unsigned char*);
+int getch_wrapper (void);
 int getctrlseq (unsigned char*);
 int everything_opened (void);
 int wait_mouse_up (int, int);
@@ -110,6 +111,7 @@ enum game_states {
 	GAME_INPROGRESS,
 	GAME_WON,
 	GAME_LOST,
+	GAME_QUIT,
 };
 enum space_modes {
 	MODE_OPEN = 0, /* expected zero while resetting `g' */
@@ -130,6 +132,8 @@ enum event {
 	CTRSEQ_CURSOR_DOWN  = -8,
 	CTRSEQ_CURSOR_UP    = -9,
 	CTRSEQ_CURSOR_RIGHT = -10,
+	/* for getch_wrapper() */
+	WRAPPER_EMOTICON    = -11,
 };
 enum mine_types {
 	NO_MINE,
