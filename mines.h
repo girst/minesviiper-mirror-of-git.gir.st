@@ -48,8 +48,9 @@ struct game {
 	int n; /* new game? */
 	int c; /* cheat mode? */
 	struct line_col {
-		int l;
-		int c;
+		int s; /* set? */
+		int l; /* line */
+		int c; /* col */
 	} m[26]; /* markers, a-z */
 };
 
@@ -76,6 +77,8 @@ void flag_square (int, int);
 void quesm_square (int, int);
 int choord_square (int, int);
 int do_uncover (int*);
+void set_mark(void);
+void jump_mark(void);
 struct minecell** alloc_array (int, int);
 void free_field (void);
 char* get_emoticon(void);

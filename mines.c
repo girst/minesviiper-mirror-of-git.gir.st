@@ -44,6 +44,7 @@
 #define EMOT(e) op.scheme->emoticons[EMOT_ ## e]
 #define BORDER(l, c) op.scheme->border[B_ ## l][B_ ## c]
 #define CW op.scheme->cell_width /* for brevity */
+#define CTRL_ 0x1F &
 
 struct minefield f;
 struct game g;
@@ -100,53 +101,41 @@ newgame:
 
 	timer_setup(0); /* stop timer */
 	show_minefield (SHOWMINES);
-	int gotaction;
-	do {
-		unsigned char mouse[3];
-		gotaction = getch(mouse);
-		if (gotaction==CTRSEQ_MOUSE_LEFT && clicked_emoticon(mouse)) {
+	for(;;) {
+		switch(getch_wrapper()) {
+		case WRAPPER_EMOTICON:
+		case 'r':
 			free_field ();
 			goto newgame;
-		} else if (gotaction == 'r') {
-			free_field ();
-			goto newgame;
-		} else if (gotaction == 'q') {
-			goto quit;
+		case 'q': goto quit;
 		}
-	} while (1);
+	}
 
 quit:
 	return 0;
 }
 
 int minesviiper(void) {
-	f.c = alloc_array (f.h, f.w);
+	f.c = alloc_array (f.h, f.w); /* TODO: just memset it */
 	g = (const struct game){0}; /* reset all game-specific parameters */
-	for (int i=26; i; g.m[--i].l = -1);
 
 	show_minefield (NORMAL);
 
-	while (1) {
-		int action;
-
-		action = getch_wrapper();
-		switch (action) {
+	for(;;) {
+		switch (getch_wrapper()) {
 		case ' ':
-			if (g.s == MODE_OPEN ||
-			    f.c[g.p[0]][g.p[1]].o == OPENED) {
-				switch (do_uncover(&(g.n))) {
-					case GAME_LOST: return GAME_LOST;
-					case GAME_WON:  return GAME_WON;
-				}
-			} else if (g.s == MODE_FLAG) {
-				flag_square (g.p[0], g.p[1]);
-			} else if (g.s ==  MODE_QUESM) {
-				quesm_square (g.p[0], g.p[1]); }
+			if (g.s == MODE_OPEN || f.c[g.p[0]][g.p[1]].o == OPENED)
+				goto open_cell;
+			if (g.s == MODE_FLAG)
+				goto flag_cell;
+			if (g.s ==  MODE_QUESM)
+				goto quesm_cell;
 			break;
 		case 'a':
 			g.s = (g.s+1)%(op.mode+1);
 			show_minefield (g.c?SHOWMINES:NORMAL);
 			break;
+		open_cell:
 		case CTRSEQ_MOUSE_LEFT:
 		case 'o':
 			switch (do_uncover(&(g.n))) {
@@ -154,17 +143,19 @@ int minesviiper(void) {
 				case GAME_WON:  return GAME_WON;
 			}
 			break;
+		flag_cell:
 		case CTRSEQ_MOUSE_RIGHT:
 		case 'i': flag_square (g.p[0], g.p[1]); break;
+		quesm_cell:
 		case '?':quesm_square (g.p[0], g.p[1]); break;
 		case CTRSEQ_CURSOR_LEFT:
-		case 'h': move_hi (g.p[0],   g.p[1]-1 ); break;
+		case 'h': move_hi (g.p[0],   g.p[1]-1); break;
 		case CTRSEQ_CURSOR_DOWN:
-		case 'j': move_hi (g.p[0]+1, g.p[1]   ); break;
+		case 'j': move_hi (g.p[0]+1, g.p[1]  ); break;
 		case CTRSEQ_CURSOR_UP:
-		case 'k': move_hi (g.p[0]-1, g.p[1]   ); break;
+		case 'k': move_hi (g.p[0]-1, g.p[1]  ); break;
 		case CTRSEQ_CURSOR_RIGHT:
-		case 'l': move_hi (g.p[0],   g.p[1]+1 ); break;
+		case 'l': move_hi (g.p[0],   g.p[1]+1); break;
 		case 'w': to_next_boundary (g.p[0], g.p[1], '>'); break;
 		case 'b': to_next_boundary (g.p[0], g.p[1], '<'); break;
 		case 'u': to_next_boundary (g.p[0], g.p[1], '^'); break;
@@ -175,28 +166,13 @@ int minesviiper(void) {
 		case 'g': move_hi (0,         g.p[1]   ); break;
 		case 'G': move_hi (f.h-1,     g.p[1]   ); break;
 		case 'z': move_hi (f.h/2, f.w/2); break;
-		case 'm':
-			action = tolower(getch_wrapper());
-			if (action < 'a' || action > 'z') break;/*out of bound*/
-			g.m[action-'a'].l = g.p[0];
-			g.m[action-'a'].c = g.p[1];
-			break;
+		case 'm': set_mark(); break;
 		case'\'': /* fallthrough */
-		case '`':
-			action = tolower(getch_wrapper());
-			if (action < 'a' || action > 'z' /* out of bound or */
-			    || g.m[action-'a'].l == -1) break; /* unset */
-			move_hi (g.m[action-'a'].l, g.m[action-'a'].c);
-			break;
+		case '`': jump_mark(); break;
 		case WRAPPER_EMOTICON:
-		case 'r': /* start a new game */
-			free_field ();
-			return GAME_NEW;
-		case 'q':
-			return GAME_QUIT;
-		case '\014': /* Ctrl-L -- redraw */
-			show_minefield (NORMAL);
-			break;
+		case 'r': return GAME_NEW;
+		case 'q': return GAME_QUIT;
+		case CTRL_'L': show_minefield (NORMAL); break;
 		case '\\':
 			if (g.n == GAME_NEW) break; /* must open a cell first */
 			show_minefield (g.c?NORMAL:SHOWMINES);
@@ -223,7 +199,7 @@ int everything_opened (void) {
 	return 1;
 }
 
-int wait_mouse_up (int l, int c) {
+int wait_mouse_up (int l, int c) { /* TODO: should not take minefield-coords but absolute ones */
 	unsigned char mouse2[3];
 	int level = 1;
 	int l2, c2;
@@ -338,6 +314,22 @@ int do_uncover (int* is_newgame) {
 	if (everything_opened()) return GAME_WON;
 
 	return GAME_INPROGRESS;
+}
+
+void set_mark(void) {
+	int mark = tolower(getch_wrapper());
+	if (mark < 'a' || mark > 'z') return; /*out of bound*/
+
+	g.m[mark-'a'].l = g.p[0];
+	g.m[mark-'a'].c = g.p[1];
+	g.m[mark-'a'].s = 1;
+}
+
+void jump_mark(void) {
+	int mark = tolower(getch_wrapper());
+	/* check bounds and if set: */
+	if (mark < 'a' || mark > 'z' || !g.m[mark-'a'].s) return;
+	move_hi (g.m[mark-'a'].l, g.m[mark-'a'].c);
 }
 
 void fill_minefield (int l, int c) {
@@ -487,6 +479,7 @@ int get_neighbours (int line, int col, int reduced_mode) {
 }
 
 struct minecell** alloc_array (int lines, int cols) {
+	free_field (); /* TODO: just memset */
 	struct minecell** a = malloc (lines * sizeof(struct minecell*));
 	if (a == NULL) return NULL;
 	for (int l = 0; l < lines; l++) {
