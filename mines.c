@@ -45,6 +45,7 @@
 #define BORDER(l, c) op.scheme->border[B_ ## l][B_ ## c]
 #define CW op.scheme->cell_width /* for brevity */
 #define CTRL_ 0x1F &
+#define AROUND(_line, _column) TODO: NOTIMPL
 
 struct minefield f;
 struct game g;
@@ -88,7 +89,7 @@ int main (int argc, char** argv) {
 	if (f.m > (f.w-1) * (f.h-1)) {
 		move_ph (LINE_OFFSET+f.h+LINES_AFTER-1,0);
 		f.m = (f.w-1) * (f.h-1);
-		fprintf (stdout, "too many mines. reduced to %d.\r\n", f.m); //TODO: doesn't show up
+		fprintf (stdout, "too many mines. reduced to %d.\r\n", f.m); //TODO: should disappear after a timeout (stomp-hi?)
 	}
 	/* end check */
 
@@ -97,6 +98,7 @@ newgame:
 	case GAME_NEW: goto newgame;
 	case GAME_WON: g.o = GAME_WON; break;
 	case GAME_LOST:g.o = GAME_LOST;break;
+	case GAME_QUIT:goto quit;
 	}
 
 	timer_setup(0); /* stop timer */
@@ -310,6 +312,15 @@ int do_uncover (int* is_newgame) {
 		if (uncover_square (g.p[0], g.p[1])) return GAME_LOST;
 	} else if (get_neighbours (g.p[0], g.p[1], 1) == 0) {
 		if (choord_square (g.p[0], g.p[1])) return GAME_LOST;
+	} else {
+		/* show the stomp size if we aren't fully flagged */
+		for (int l = MAX(g.p[0]-1, 0); l <= MIN(g.p[0]+1, f.h-1); l++) {
+			for (int c = MAX(g.p[1]-1, 0); c <= MIN(g.p[1]+1, f.w-1); c++) {
+				if (f.c[l][c].o == CLOSED && f.c[l][c].f !=FLAG)
+					partial_show_minefield (l, c, HIGHLIGHT); //TODO: hide after timeout
+					/* save the highlight position, timeout-end, and setup a timer. if another tiemout comes in before the timeout is over, the old one shall be removed and the timer cancelled before drawing the new one. */
+			}
+		}
 	}
 	if (everything_opened()) return GAME_WON;
 
@@ -421,9 +432,10 @@ char* cell2schema (int l, int c, int mode) {
 }
 
 void partial_show_minefield (int l, int c, int mode) {
+	if (mode == HIGHLIGHT) printf ("\033[7m"); /* reverse video */
 	move_ph (l+LINE_OFFSET, field2screen_c(c));
-
 	print (cell2schema(l, c, mode));
+	if (mode == HIGHLIGHT) printf ("\033[0m"); /* reset all */
 }
 
 char* get_emoticon(void) {

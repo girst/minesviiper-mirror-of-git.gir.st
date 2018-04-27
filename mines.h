@@ -47,11 +47,11 @@ struct game {
 	int o; /* mode */
 	int n; /* new game? */
 	int c; /* cheat mode? */
-	struct line_col {
+	struct markers {
 		int s; /* set? */
 		int l; /* line */
 		int c; /* col */
-	} m[26]; /* markers, a-z */
+	} m[26]; /* a-z */
 };
 
 struct opt {
