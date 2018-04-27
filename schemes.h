@@ -44,7 +44,6 @@ struct minescheme {
 	char* field_closed;
 	char* field_flagged;
 	char* field_question;
-	char* mouse_highlight;
 	char* mine_normal;
 	char* mine_death;
 	char* mine_wrongf;
@@ -64,7 +63,6 @@ struct minescheme symbols_mono = {
 	.field_closed = "░░",
 	.field_flagged = "▕▀",
 	.field_question = "？",
-	.mouse_highlight = "▓▓",
 	.mine_normal = "＊",
 	.mine_death = "＃",
 	.mine_wrongf = "／",
@@ -94,7 +92,6 @@ struct minescheme symbols_col1 = {
 	.field_closed = "░░",
 	.field_flagged = SGR(GREY,"▕\033["BRED"m▀"),
 	.field_question = "？",
-	.mouse_highlight = "▓▓",
 	.mine_normal = "＊",
 	.mine_death = SGR(RED,"＊"),
 	.mine_wrongf = "／",
@@ -129,7 +126,6 @@ struct minescheme symbols_doublewidth = {
 	.field_closed = "\x61",
 	.field_flagged = SGR(BOLD,"\033O!"),
 	.field_question = SGR(BOLD,"?"),
-	.mouse_highlight = SGR(BLINK,"@"),
 	.mine_normal = SGR(BOLD,"*"),
 	.mine_death = SGR(BOLD,"#"),
 	.mine_wrongf = SGR(BOLD,"/"),

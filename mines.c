@@ -131,12 +131,10 @@ int minesviiper(void) {
 	for(;;) {
 		switch (getch_wrapper()) {
 		case ' ':
-			if (g.s == MODE_OPEN || f.c[g.p[0]][g.p[1]].o == OPENED)
-				goto open_cell;
-			if (g.s == MODE_FLAG)
-				goto flag_cell;
-			if (g.s ==  MODE_QUESM)
-				goto quesm_cell;
+			if (f.c[g.p[0]][g.p[1]].o == OPENED) goto open_cell;
+			if (g.s == MODE_OPEN)  goto open_cell;
+			if (g.s == MODE_FLAG)  goto flag_cell;
+			if (g.s == MODE_QUESM) goto quesm_cell;
 			break;
 		case 'a':
 			g.s = (g.s+1)%(op.mode+1);
@@ -179,11 +177,33 @@ int minesviiper(void) {
 		case WRAPPER_EMOTICON:
 		case 'r': return GAME_NEW;
 		case 'q': return GAME_QUIT;
-		case CTRL_'L': show_minefield (NORMAL); break;
+		case CTRL_'L':
+			screen_setup(1);
+			show_minefield (NORMAL);
+			break;
+		case CTRL_'R':
+			/* resize minefield mode */
+			for(;;) {
+				free_field ();
+				switch (getch_wrapper()) { //TODO: segfault on mouse up
+				case 'q': return GAME_NEW;
+				case 'h': f.w--; break;
+				case 'j': f.h++; break;
+				case 'k': f.h--; break;
+				case 'l': f.w++; break;
+				}
+				// TODO: clamp size to termsize/mousemax
+				/* recalculate mines: */
+				f.m = f.w*f.h*(f.w*f.h<30*16?.15625:.20625); //TODO: should be function
+
+				f.c = alloc_array (f.h, f.w);
+				screen_setup(1); /* clears the screen */
+				show_minefield (RESIZEMODE);
+			}
 		case '\\':
 			if (g.n == GAME_NEW) break; /* must open a cell first */
-			show_minefield (g.c?NORMAL:SHOWMINES);
 			g.c = !g.c;
+			show_minefield (g.c?SHOWMINES:NORMAL);
 			break;
 		}
 	}
@@ -216,8 +236,7 @@ int wait_mouse_up (int l, int c) { /* TODO: should not take minefield-coords but
 
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
 		/* show a pushed-in button if cursor is on minefield */
-		move_ph (l+LINE_OFFSET, field2screen_c(c));
-		fputs (op.scheme->mouse_highlight, stdout);
+		partial_show_minefield (l, c, HIGHLIGHT);
 	}
 
 	while (level > 0) {
@@ -375,9 +394,7 @@ void move_hi (int l, int c) {
 	g.p[1] = CLAMP(c, 0, f.w-1);
 	move_ph (g.p[0]+LINE_OFFSET, field2screen_c(g.p[1]));
 
-	print("\033[7m"); /* reverse video */
 	partial_show_minefield (g.p[0], g.p[1], HIGHLIGHT);
-	print("\033[0m"); /* un-invert */
 }
 
 /* to_next_boundary(): move into the supplied direction until a change in open-
@@ -425,8 +442,8 @@ char* cell2schema (int l, int c, int mode) {
 }
 
 void partial_show_minefield (int l, int c, int mode) {
-	if (mode == HIGHLIGHT) printf ("\033[7m"); /* reverse video */
 	move_ph (l+LINE_OFFSET, field2screen_c(c));
+	if (mode == HIGHLIGHT) printf ("\033[7m"); /* reverse video */
 	print (cell2schema(l, c, mode));
 	if (mode == HIGHLIGHT) printf ("\033[0m"); /* reset all */
 }
@@ -454,7 +471,9 @@ void show_minefield (int mode) {
 
 	print_border(TOP, f.w);
 	print_line(STATUS) {
-		printf("[%03d%c]%*s%s%*s[%03d]",
+		if (mode == RESIZEMODE) printf ("%-*s", 2*half_spaces,
+		  "Resize Mode: hjkl to resize, q to exit");
+		else printf("[%03d%c]%*s%s%*s[%03d]",
 		  /* [ */ f.m - g.f, modechar[g.s], /* ] */
 		  left_spaces,"", get_emoticon(), right_spaces,"",
 		  /* [ */ dtime /* ] */);
@@ -634,7 +653,7 @@ int parse_fieldspec(char* str) {
 	if (n < 2) {
 		return 1; /* error */
 	} else if (n == 2) {
-		if (f.w < 30) f.m = f.w*f.h*.15625;
+		if (f.w < 30) f.m = f.w*f.h*.15625; //TODO: used twice; make function
 		else f.m = f.w*f.h*.20625;
 	}
 

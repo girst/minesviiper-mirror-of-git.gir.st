@@ -99,6 +99,7 @@ enum modes {
 	REDUCED,
 	SHOWMINES,
 	HIGHLIGHT,
+	RESIZEMODE,
 };
 enum flagtypes {
 	NOFLAG,
