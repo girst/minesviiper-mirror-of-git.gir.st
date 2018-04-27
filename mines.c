@@ -45,7 +45,12 @@
 #define BORDER(l, c) op.scheme->border[B_ ## l][B_ ## c]
 #define CW op.scheme->cell_width /* for brevity */
 #define CTRL_ 0x1F &
-#define AROUND(_line, _column) TODO: NOTIMPL
+
+#define CELL f.c[ROW][COL] /* helper for AROUND() */
+#define AROUND(l, c) /* gives us loop-variables ROW, COL, CELL */ \
+	for (int ROW = MAX(l-1, 0); ROW <= MIN(l+1, f.h-1); ROW++) \
+		for (int COL = MAX(c-1, 0); COL <= MIN(c+1, f.w-1); COL++) \
+			if (!(ROW == l && COL == c)) /* skip itself */
 
 struct minefield f;
 struct game g;
@@ -236,19 +241,20 @@ int wait_mouse_up (int l, int c) { /* TODO: should not take minefield-coords but
 }
 
 int choord_square (int line, int col) {
-	for (int l = MAX(line-1, 0); l <= MIN(line+1, f.h-1); l++) {
-		for (int c = MAX(col-1, 0); c <= MIN(col+1, f.w-1); c++) {
-			if (f.c[l][c].f != FLAG) {
-				if (uncover_square (l, c))
-					 return 1;
-			}
+	if (uncover_square (line, col)) return 1;
+	AROUND(line,col)
+		if (CELL.f != FLAG) {
+			if (uncover_square (ROW, COL))
+				 return 1;
 		}
-	}
 
 	return 0;
 }
 
 int uncover_square (int l, int c) {
+	if (f.c[l][c].o == OPENED)
+		return 0; /* nothing to do */
+
 	f.c[l][c].o = OPENED;
 	f.c[l][c].f = NOFLAG; /*must not be QUESM, otherwise rendering issues*/
 	partial_show_minefield (l, c, NORMAL);
@@ -260,18 +266,8 @@ int uncover_square (int l, int c) {
 
 	/* check for chording */
 	if (f.c[l][c].n == 0) {
-		for (int choord_l = -1; choord_l <= 1; choord_l++) {
-			for (int choord_c = -1; choord_c <= 1; choord_c++) {
-				int newl = l + choord_l;
-				int newc = c + choord_c;
-				if (newl >= 0 && newl < f.h &&
-				    newc >= 0 && newc < f.w &&
-				    f.c[newl][newc].o == CLOSED &&
-				    uncover_square (newl, newc)) {
-					 return 1;
-				}
-			}
-		}
+		AROUND(l, c)
+			if (uncover_square (ROW, COL)) return 1;
 	}
 
 	return 0;
@@ -314,13 +310,10 @@ int do_uncover (int* is_newgame) {
 		if (choord_square (g.p[0], g.p[1])) return GAME_LOST;
 	} else {
 		/* show the stomp size if we aren't fully flagged */
-		for (int l = MAX(g.p[0]-1, 0); l <= MIN(g.p[0]+1, f.h-1); l++) {
-			for (int c = MAX(g.p[1]-1, 0); c <= MIN(g.p[1]+1, f.w-1); c++) {
-				if (f.c[l][c].o == CLOSED && f.c[l][c].f !=FLAG)
-					partial_show_minefield (l, c, HIGHLIGHT); //TODO: hide after timeout
-					/* save the highlight position, timeout-end, and setup a timer. if another tiemout comes in before the timeout is over, the old one shall be removed and the timer cancelled before drawing the new one. */
-			}
-		}
+		AROUND(g.p[0], g.p[1])
+			if (CELL.o == CLOSED && CELL.f !=FLAG)
+				partial_show_minefield (ROW, COL, HIGHLIGHT); //TODO: hide after timeout
+			/* save the highlight position, timeout-end, and setup a timer. if another tiemout comes in before the timeout is over, the old one shall be removed and the timer cancelled before drawing the new one. if we hit any key it shall remove itself aswell */
 	}
 	if (everything_opened()) return GAME_WON;
 
@@ -478,14 +471,9 @@ int get_neighbours (int line, int col, int reduced_mode) {
 	   modes: 0=normal; 1=reduced */
 
 	int count = 0;
-
-	for (int l = MAX(line-1, 0); l <= MIN(line+1, f.h-1); l++) {
-		for (int c = MAX(col-1, 0); c <= MIN(col+1, f.w-1); c++) {
-			if (!l && !c) continue;
-
-			count += !!f.c[l][c].m;
-			count -= reduced_mode * f.c[l][c].f==FLAG;
-		}
+	AROUND(line, col) {
+		count += !!CELL.m;
+		count -= reduced_mode * CELL.f==FLAG;
 	}
 	return count;
 }
