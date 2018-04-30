@@ -184,21 +184,22 @@ int minesviiper(void) {
 		case CTRL_'R':
 			/* resize minefield mode */
 			for(;;) {
-				free_field ();
-				switch (getch_wrapper()) { //TODO: segfault on mouse up
+				screen_setup(1); /* clears the screen */
+				show_minefield (RESIZEMODE);
+
+				free_field(); /* must free before resizing! */
+				unsigned char buf[3];
+				switch (getctrlseq(buf)) {
 				case 'q': return GAME_NEW;
 				case 'h': f.w--; break;
 				case 'j': f.h++; break;
 				case 'k': f.h--; break;
 				case 'l': f.w++; break;
 				}
-				// TODO: clamp size to termsize/mousemax
-				/* recalculate mines: */
-				f.m = f.w*f.h*(f.w*f.h<30*16?.15625:.20625); //TODO: should be function
 
+				clamp_fieldsize();
+				f.m = mines_percentage(f.w, f.h);
 				f.c = alloc_array (f.h, f.w);
-				screen_setup(1); /* clears the screen */
-				show_minefield (RESIZEMODE);
 			}
 		case '\\':
 			if (g.n == GAME_NEW) break; /* must open a cell first */
@@ -634,13 +635,11 @@ int getch_wrapper (void) {
 	return c;
 }
 
-int parse_fieldspec(char* str) {
-	/* parses the FIELDSPEC (WxHxM); returns 1 on error */
-	int n = sscanf (str, "%dx%dx%d", &f.w, &f.h, &f.m);
+void clamp_fieldsize (void) {
+	/* clamp field size to terminal size and mouse maximum: */
 	struct winsize w;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
-	/* clamp field size to terminal size and mouse maximum: */
 	if (COL_OFFSET + f.w*CW + COL_OFFSET > w.ws_col)
 		f.w = w.ws_col/CW - (COL_OFFSET+COL_OFFSET);
 	if (LINE_OFFSET + f.h + LINES_AFTER > w.ws_row)
@@ -649,12 +648,22 @@ int parse_fieldspec(char* str) {
 		f.w = MOUSE_MAX/CW - COL_OFFSET;
 	if (LINE_OFFSET + f.h > MOUSE_MAX)
 		f.h = MOUSE_MAX - LINE_OFFSET;
+}
+
+int mines_percentage(int w, int h) {
+	return w*h*(w*h<30*16?.15625:.20625);
+}
+
+int parse_fieldspec(char* str) {
+	/* parses the FIELDSPEC (WxHxM); returns 1 on error */
+	int n = sscanf (str, "%dx%dx%d", &f.w, &f.h, &f.m);
+
+	clamp_fieldsize();
 
 	if (n < 2) {
 		return 1; /* error */
 	} else if (n == 2) {
-		if (f.w < 30) f.m = f.w*f.h*.15625; //TODO: used twice; make function
-		else f.m = f.w*f.h*.20625;
+		f.m = mines_percentage(f.w, f.h);
 	}
 
 	return 0;

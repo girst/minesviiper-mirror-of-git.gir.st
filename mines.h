@@ -87,6 +87,8 @@ int screen2field_c (int);
 int field2screen_c (int);
 int clicked_emoticon (unsigned char*);
 void quit(void);
+void clamp_fieldsize (void);
+int mines_percentage(int, int);
 int parse_fieldspec(char*);
 void signal_handler (int);
 void signal_setup (void);
