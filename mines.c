@@ -44,10 +44,11 @@
 #define EMOT(e) op.scheme->emoticons[EMOT_ ## e]
 #define BORDER(l, c) op.scheme->border[B_ ## l][B_ ## c]
 #define CW op.scheme->cell_width /* for brevity */
+#define HI_CELL f.c[g.p[0]][g.p[1]]
 #define CTRL_ 0x1F &
 
-#define CELL f.c[ROW][COL] /* helper for AROUND() */
-#define AROUND(l, c) /* gives us loop-variables ROW, COL, CELL */ \
+#define AR_CELL f.c[ROW][COL] /* helper for AROUND() */
+#define AROUND(l, c) /* gives us loop-variables ROW, COL, AR_CELL */ \
 	for (int ROW = MAX(l-1, 0); ROW <= MIN(l+1, f.h-1); ROW++) \
 		for (int COL = MAX(c-1, 0); COL <= MIN(c+1, f.w-1); COL++) \
 			if (!(ROW == l && COL == c)) /* skip itself */
@@ -70,7 +71,7 @@ int main (int argc, char** argv) {
 		switch (optget) {
 		case 'n': op.mode    = NOFLAG; break;
 		case 'f': op.mode    = FLAG; break; /*default*/
-		case 'q': op.mode    = QUESM; break;
+		case 'q': op.mode    = QUESM; break; /*WARN:implicitly sets -f*/
 		case 'c': op.scheme  = &symbols_col1; break;
 		case 'd': op.scheme  = &symbols_doublewidth; break;
 		case 'h':
@@ -89,14 +90,6 @@ int main (int argc, char** argv) {
 	signal_setup();
 	screen_setup(1);
 	atexit (*quit);
-
-	/* check boundaries */
-	if (f.m > (f.w-1) * (f.h-1)) {
-		move_ph (LINE_OFFSET+f.h+LINES_AFTER-1,0);
-		f.m = (f.w-1) * (f.h-1);
-		fprintf (stdout, "too many mines. reduced to %d.\r\n", f.m); //TODO: should disappear after a timeout (stomp-hi?)
-	}
-	/* end check */
 
 newgame:
 	switch (minesviiper()) {
@@ -132,7 +125,7 @@ int minesviiper(void) {
 	for(;;) {
 		switch (getch_wrapper()) {
 		case ' ':
-			if (f.c[g.p[0]][g.p[1]].o == OPENED) goto open_cell;
+			if (HI_CELL.o == OPENED) goto open_cell;
 			if (g.s == MODE_OPEN)  goto open_cell;
 			if (g.s == MODE_FLAG)  goto flag_cell;
 			if (g.s == MODE_QUESM) goto quesm_cell;
@@ -247,7 +240,7 @@ int wait_mouse_up (int l, int c) { /* TODO: should not take minefield-coords but
 int choord_square (int line, int col) {
 	if (uncover_square (line, col)) return 1;
 	AROUND(line,col)
-		if (CELL.f != FLAG) {
+		if (AR_CELL.f != FLAG) {
 			if (uncover_square (ROW, COL))
 				 return 1;
 		}
@@ -307,20 +300,21 @@ int do_uncover (int* is_newgame) {
 		timer_setup(1);
 	}
 
-	if (f.c[g.p[0]][g.p[1]].f == FLAG  ) return GAME_INPROGRESS;
-	if (f.c[g.p[0]][g.p[1]].o == CLOSED) {
+	if (HI_CELL.f == FLAG  ) return GAME_INPROGRESS;
+	if (HI_CELL.o == CLOSED) {
 		if (uncover_square (g.p[0], g.p[1])) return GAME_LOST;
 	} else if (get_neighbours (g.p[0], g.p[1], 1) == 0) {
 		if (choord_square (g.p[0], g.p[1])) return GAME_LOST;
 	} else {
-		/* show the stomp size if we aren't fully flagged */
+		/* show the stomp radius if we aren't fully flagged */
 		AROUND(g.p[0], g.p[1])
-			if (CELL.o == CLOSED && CELL.f !=FLAG)
-				partial_show_minefield (ROW, COL, HIGHLIGHT); //TODO: hide after timeout
-			/* save the highlight position, timeout-end, and setup a timer. 
-			if another tiemout comes in before the timeout is over, the old 
-			one shall be removed and the timer cancelled before drawing the 
-			new one. if we hit any key it shall remove itself aswell */
+			if (AR_CELL.o == CLOSED && AR_CELL.f !=FLAG)
+				partial_show_minefield (ROW, COL, HIGHLIGHT);
+		/* TODO: save g.p, then in ~.1s execute:
+		AROUND(saved_l, saved_r) partial_show_minefield (ROW, COL, NORMAL);
+		using setitimer is tricky, because we already use SIGALRM; and it
+		should also trigger when a key is pressed. maybe a getchar() with
+		a read(2)-timeout + ungetch()? (usleep did not show the stomp at all?!) */
 	}
 	if (everything_opened()) return GAME_WON;
 
@@ -480,8 +474,8 @@ int get_neighbours (int line, int col, int reduced_mode) {
 
 	int count = 0;
 	AROUND(line, col) {
-		count += !!CELL.m;
-		count -= reduced_mode * CELL.f==FLAG;
+		count += !!AR_CELL.m;
+		count -= reduced_mode * AR_CELL.f==FLAG;
 	}
 	return count;
 }
@@ -497,11 +491,12 @@ void interactive_resize(void) {
 
 		free_field(); /* must free before resizing! */
 		switch (getctrlseq(buf)) {
-		case 'q': return;
 		case 'h': f.w--; break;
 		case 'j': f.h++; break;
 		case 'k': f.h--; break;
 		case 'l': f.w++; break;
+		case 0xa: /* enter, fallthrough */
+		case 'q': return;
 		}
 
 		clamp_fieldsize();
@@ -677,6 +672,8 @@ int parse_fieldspec(char* str) {
 	} else if (n == 2) {
 		f.m = mines_percentage(f.w, f.h);
 	}
+
+	f.m = MIN(f.m, (f.w-1) * (f.h-1)); /* limit mines */
 
 	return 0;
 }
