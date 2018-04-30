@@ -18,6 +18,7 @@
 
 #define _POSIX_C_SOURCE 2 /*for getopt, sigaction in c99*/
 #include <ctype.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +36,7 @@
 #define COL_OFFSET 2
 #define BIG_MOVE 5
 #define MOUSE_MAX 231
+#define STOMP_TIMEOUT 150 /*ms*/
 
 #define MIN(a,b) (a>b?b:a)
 #define MAX(a,b) (a>b?a:b)
@@ -204,6 +206,7 @@ int everything_opened (void) {
 }
 
 int wait_mouse_up (int l, int c) { /* TODO: should not take minefield-coords but absolute ones */
+	//TODO: make stomp radius visible while mouse is down instead of after mouse up
 	unsigned char mouse2[3];
 	int level = 1;
 	int l2, c2;
@@ -309,11 +312,21 @@ int do_uncover (int* is_newgame) {
 		AROUND(g.p[0], g.p[1])
 			if (AR_CELL.o == CLOSED && AR_CELL.f !=FLAG)
 				partial_show_minefield (ROW, COL, HIGHLIGHT);
-		/* TODO: save g.p, then in ~.1s execute:
-		AROUND(saved_l, saved_r) partial_show_minefield (ROW, COL, NORMAL);
-		using setitimer is tricky, because we already use SIGALRM; and it
-		should also trigger when a key is pressed. maybe a getchar() with
-		a read(2)-timeout + ungetch()? (usleep did not show the stomp at all?!) */
+		fflush(stdout); /* won't display without */
+
+		/* block SIGALRM, otherwise poll gets cancelled by the timer: */
+		sigset_t sig;
+		sigemptyset (&sig);
+		sigaddset(&sig, SIGALRM);
+		sigprocmask (SIG_BLOCK, &sig, NULL);
+		/* wait for timout or keypress: */
+		struct pollfd fds;
+		fds.fd = 0; fds.events = POLLIN;
+		poll(&fds, 1, STOMP_TIMEOUT);
+		/* restore signal mask: */
+		sigprocmask (SIG_UNBLOCK, &sig, NULL);
+
+		AROUND(g.p[0], g.p[1]) partial_show_minefield(ROW, COL, NORMAL);
 	}
 	if (everything_opened()) return GAME_WON;
 
