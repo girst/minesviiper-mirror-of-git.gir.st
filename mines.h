@@ -70,14 +70,16 @@ int getch_wrapper (void);
 int getctrlseq (unsigned char*);
 int everything_opened (void);
 int wait_mouse_up (int, int);
-void partial_show_minefield (int, int, int);
+void redraw_cell (int, int, int);
 void show_minefield (int);
+void show_stomp (int, int, int);
+void wait_stomp (void);
 int get_neighbours (int, int, int);
 int uncover_square (int, int);
 void flag_square (int, int);
 void quesm_square (int, int);
 int choord_square (int, int);
-int do_uncover (int*);
+int do_uncover (int*, int);
 void set_mark(void);
 void jump_mark(void);
 void interactive_resize(void);
@@ -142,6 +144,10 @@ enum event {
 	CTRSEQ_CURSOR_RIGHT = -10,
 	/* for getch_wrapper() */
 	WRAPPER_EMOTICON    = -11,
+};
+enum actor {
+	KEYBOARD,
+	MOUSE,
 };
 enum mine_types {
 	NO_MINE,

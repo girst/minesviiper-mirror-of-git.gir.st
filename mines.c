@@ -124,6 +124,7 @@ int minesviiper(void) {
 	show_minefield (NORMAL);
 
 	for(;;) {
+		int actor = KEYBOARD; /* WARN: feels like a hack :| */
 		switch (getch_wrapper()) {
 		case ' ':
 			if (HI_CELL.o == OPENED) goto open_cell;
@@ -135,10 +136,12 @@ int minesviiper(void) {
 			g.s = (g.s+1)%(op.mode+1);
 			show_minefield (g.c?SHOWMINES:NORMAL);
 			break;
-		open_cell:
 		case CTRSEQ_MOUSE_LEFT:
+			actor = MOUSE;
+			/* fallthrough */
+		open_cell:
 		case 'o':
-			switch (do_uncover(&(g.n))) {
+			switch (do_uncover(&(g.n), actor)) {
 				case GAME_LOST: return GAME_LOST;
 				case GAME_WON:  return GAME_WON;
 			}
@@ -216,7 +219,9 @@ int wait_mouse_up (int l, int c) { /* TODO: should not take minefield-coords but
 
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
 		/* show a pushed-in button if cursor is on minefield */
-		partial_show_minefield (l, c, HIGHLIGHT);
+		redraw_cell (l, c, HIGHLIGHT);
+
+		show_stomp(1, l, c);
 	}
 
 	while (level > 0) {
@@ -232,7 +237,8 @@ int wait_mouse_up (int l, int c) { /* TODO: should not take minefield-coords but
 	move_ph (1, field2screen_c (f.w/2)-1); print (get_emoticon());
 
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
-		partial_show_minefield (l, c, NORMAL);
+		redraw_cell (l, c, NORMAL);
+		show_stomp(0, l, c);
 	}
 	c2 = screen2field_c(mouse2[1]);
 	l2 = screen2field_l(mouse2[2]);
@@ -256,7 +262,7 @@ int uncover_square (int l, int c) {
 
 	f.c[l][c].o = OPENED;
 	f.c[l][c].f = NOFLAG; /*must not be QUESM, otherwise rendering issues*/
-	partial_show_minefield (l, c, NORMAL);
+	redraw_cell (l, c, NORMAL);
 
 	if (f.c[l][c].m) {
 		f.c[l][c].m = DEATH_MINE;
@@ -281,7 +287,7 @@ void flag_square (int l, int c) {
 	if (f.c[l][c].f==FLAG) g.f++;
 	else if ((op.mode==FLAG  && f.c[l][c].f==NOFLAG) ||
 	         (op.mode==QUESM && f.c[l][c].f==QUESM)) g.f--;
-	partial_show_minefield (l, c, NORMAL);
+	redraw_cell (l, c, NORMAL);
 	move_ph (1, op.scheme->cell_width);
 	printf ("[%03d%c]", f.m - g.f, modechar[g.s]);
 }
@@ -292,10 +298,10 @@ void quesm_square (int l, int c) {
 	if      (f.c[l][c].o != CLOSED) return;
 	else if (f.c[l][c].f == NOFLAG) f.c[l][c].f = QUESM;
 	else if (f.c[l][c].f == QUESM)  f.c[l][c].f = NOFLAG;
-	partial_show_minefield (l, c, NORMAL);
+	redraw_cell (l, c, NORMAL);
 }
 
-int do_uncover (int* is_newgame) {
+int do_uncover (int* is_newgame, int actor) {
 	if (*is_newgame == GAME_NEW) {
 		*is_newgame = GAME_INPROGRESS;
 		fill_minefield (g.p[0], g.p[1]);
@@ -307,26 +313,12 @@ int do_uncover (int* is_newgame) {
 		if (uncover_square (g.p[0], g.p[1])) return GAME_LOST;
 	} else if (get_neighbours (g.p[0], g.p[1], 1) == 0) {
 		if (choord_square (g.p[0], g.p[1])) return GAME_LOST;
-	} else {
-		/* show the stomp radius if we aren't fully flagged */
-		AROUND(g.p[0], g.p[1])
-			if (AR_CELL.o == CLOSED && AR_CELL.f !=FLAG)
-				partial_show_minefield (ROW, COL, HIGHLIGHT);
-		fflush(stdout); /* won't display without */
+	} else if (actor != MOUSE) {
+		show_stomp(1, g.p[0], g.p[1]);
 
-		/* block SIGALRM, otherwise poll gets cancelled by the timer: */
-		sigset_t sig;
-		sigemptyset (&sig);
-		sigaddset(&sig, SIGALRM);
-		sigprocmask (SIG_BLOCK, &sig, NULL);
-		/* wait for timout or keypress: */
-		struct pollfd fds;
-		fds.fd = 0; fds.events = POLLIN;
-		poll(&fds, 1, STOMP_TIMEOUT);
-		/* restore signal mask: */
-		sigprocmask (SIG_UNBLOCK, &sig, NULL);
+		wait_stomp();
 
-		AROUND(g.p[0], g.p[1]) partial_show_minefield(ROW, COL, NORMAL);
+		show_stomp(0, g.p[0], g.p[1]);
 	}
 	if (everything_opened()) return GAME_WON;
 
@@ -382,13 +374,13 @@ void move_ph (int line, int col) {
 void move_hi (int l, int c) {
 	/* move cursor and highlight to absolute coordinates */
 
-	partial_show_minefield (g.p[0], g.p[1], NORMAL);
+	redraw_cell (g.p[0], g.p[1], NORMAL);
 	/* update g.p */
 	g.p[0] = CLAMP(l, 0, f.h-1);
 	g.p[1] = CLAMP(c, 0, f.w-1);
 	move_ph (g.p[0]+LINE_OFFSET, field2screen_c(g.p[1]));
 
-	partial_show_minefield (g.p[0], g.p[1], HIGHLIGHT);
+	redraw_cell (g.p[0], g.p[1], HIGHLIGHT);
 }
 
 /* to_next_boundary(): move into the supplied direction until a change in open-
@@ -435,7 +427,7 @@ char* cell2schema (int l, int c, int mode) {
 		/*.......................*/ op.scheme->number[f.c[l][c].n]);
 }
 
-void partial_show_minefield (int l, int c, int mode) {
+void redraw_cell (int l, int c, int mode) {
 	move_ph (l+LINE_OFFSET, field2screen_c(c));
 	if (mode == HIGHLIGHT) printf ("\033[7m"); /* reverse video */
 	print (cell2schema(l, c, mode));
@@ -478,6 +470,37 @@ void show_minefield (int mode) {
 	for (int l = 0; l < f.h; l++) print_line(FIELD)
 		printm (f.w, cell2schema(l, _loop, mode));
 	print_border(BOTTOM, f.w);
+}
+
+void show_stomp (int enable, int l, int c) {
+	if (enable) {
+		if (f.c[l][c].o == OPENED && get_neighbours (l, c, 1) != 0) {
+			/* show the stomp radius if we aren't fully flagged */
+			AROUND(l, c)
+				if (AR_CELL.o == CLOSED && AR_CELL.f != FLAG)
+					redraw_cell (ROW, COL, HIGHLIGHT);
+			fflush(stdout); /* won't display without */
+
+		}
+	} else {
+                AROUND(l, c) redraw_cell (ROW, COL, NORMAL);
+	}
+}
+
+void wait_stomp (void) {
+	/* block SIGALRM, otherwise poll gets cancelled by the timer: */
+	sigset_t sig;
+	sigemptyset (&sig);
+	sigaddset(&sig, SIGALRM);
+	sigprocmask (SIG_BLOCK, &sig, NULL);
+
+	/* wait for timout or keypress: */
+	struct pollfd fds;
+	fds.fd = 0; fds.events = POLLIN;
+	poll(&fds, 1, STOMP_TIMEOUT);
+
+	/* restore signal mask: */
+	sigprocmask (SIG_UNBLOCK, &sig, NULL);
 }
 
 int get_neighbours (int line, int col, int reduced_mode) {
