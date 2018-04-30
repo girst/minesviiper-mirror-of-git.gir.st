@@ -1,5 +1,5 @@
 /*******************************************************************************
- minesviiper 0.3.145926
+ minesviiper 0.4
  By Tobias Girstmair, 2015 - 2018
 
  ./minesviiper 16x16x40
@@ -111,10 +111,11 @@ newgame:
 	for(;;) {
 		switch(getch_wrapper()) {
 		case WRAPPER_EMOTICON:
-		case 'r':
-			free_field ();
-			goto newgame;
+		case 'r': goto newgame;
 		case 'q': goto quit;
+		case CTRL_'R':
+			interactive_resize();
+			goto newgame;
 		}
 	}
 
@@ -123,7 +124,7 @@ quit:
 }
 
 int minesviiper(void) {
-	f.c = alloc_array (f.h, f.w); /* TODO: just memset it */
+	f.c = alloc_array (f.h, f.w);
 	g = (const struct game){0}; /* reset all game-specific parameters */
 
 	show_minefield (NORMAL);
@@ -182,25 +183,8 @@ int minesviiper(void) {
 			show_minefield (NORMAL);
 			break;
 		case CTRL_'R':
-			/* resize minefield mode */
-			for(;;) {
-				screen_setup(1); /* clears the screen */
-				show_minefield (RESIZEMODE);
-
-				free_field(); /* must free before resizing! */
-				unsigned char buf[3];
-				switch (getctrlseq(buf)) {
-				case 'q': return GAME_NEW;
-				case 'h': f.w--; break;
-				case 'j': f.h++; break;
-				case 'k': f.h--; break;
-				case 'l': f.w++; break;
-				}
-
-				clamp_fieldsize();
-				f.m = mines_percentage(f.w, f.h);
-				f.c = alloc_array (f.h, f.w);
-			}
+			interactive_resize();
+			return GAME_NEW;
 		case '\\':
 			if (g.n == GAME_NEW) break; /* must open a cell first */
 			g.c = !g.c;
@@ -333,7 +317,10 @@ int do_uncover (int* is_newgame) {
 		AROUND(g.p[0], g.p[1])
 			if (CELL.o == CLOSED && CELL.f !=FLAG)
 				partial_show_minefield (ROW, COL, HIGHLIGHT); //TODO: hide after timeout
-			/* save the highlight position, timeout-end, and setup a timer. if another tiemout comes in before the timeout is over, the old one shall be removed and the timer cancelled before drawing the new one. if we hit any key it shall remove itself aswell */
+			/* save the highlight position, timeout-end, and setup a timer. 
+			if another tiemout comes in before the timeout is over, the old 
+			one shall be removed and the timer cancelled before drawing the 
+			new one. if we hit any key it shall remove itself aswell */
 	}
 	if (everything_opened()) return GAME_WON;
 
@@ -473,7 +460,8 @@ void show_minefield (int mode) {
 	print_border(TOP, f.w);
 	print_line(STATUS) {
 		if (mode == RESIZEMODE) printf ("%-*s", 2*half_spaces,
-		  "Resize Mode: hjkl to resize, q to exit");
+		  f.w>20?"Resize Mode: HJKL to resize, Enter to set":
+		  f.w>11?"Resize Mode: HJKL/Enter":"HJKL/Enter");
 		else printf("[%03d%c]%*s%s%*s[%03d]",
 		  /* [ */ f.m - g.f, modechar[g.s], /* ] */
 		  left_spaces,"", get_emoticon(), right_spaces,"",
@@ -498,8 +486,32 @@ int get_neighbours (int line, int col, int reduced_mode) {
 	return count;
 }
 
+void interactive_resize(void) {
+	unsigned char buf[3];
+	for(;;) {
+		screen_setup(1); /* clears the screen */
+		show_minefield (RESIZEMODE);
+		/* show the new field size in the corner: */
+		move_ph(f.h+LINE_OFFSET-1,COL_OFFSET);
+		printf("%d x %d", f.w, f.h);
+
+		free_field(); /* must free before resizing! */
+		switch (getctrlseq(buf)) {
+		case 'q': return;
+		case 'h': f.w--; break;
+		case 'j': f.h++; break;
+		case 'k': f.h--; break;
+		case 'l': f.w++; break;
+		}
+
+		clamp_fieldsize();
+		f.m = mines_percentage(f.w, f.h);
+		f.c = alloc_array (f.h, f.w);
+	}
+}
+
 struct minecell** alloc_array (int lines, int cols) {
-	free_field (); /* TODO: just memset */
+	free_field (); /* NOTE: this feels like a hack :| */
 	struct minecell** a = malloc (lines * sizeof(struct minecell*));
 	if (a == NULL) return NULL;
 	for (int l = 0; l < lines; l++) {

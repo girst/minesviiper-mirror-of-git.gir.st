@@ -79,6 +79,7 @@ int choord_square (int, int);
 int do_uncover (int*);
 void set_mark(void);
 void jump_mark(void);
+void interactive_resize(void);
 struct minecell** alloc_array (int, int);
 void free_field (void);
 char* get_emoticon(void);
