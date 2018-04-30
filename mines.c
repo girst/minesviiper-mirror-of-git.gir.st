@@ -81,8 +81,7 @@ int main (int argc, char** argv) {
 		}
 	} if (optind < argc) { /* parse Fieldspec */
 		if (parse_fieldspec (argv[optind])) {
-			fprintf (stderr, "FIELDSPEC: WxH[xM]"
-			" (width 'x' height 'x' mines)\n");
+			fprintf (stderr, SHORTHELP FIELDHELP, argv[0]);
 			return 1;
 		}
 	}

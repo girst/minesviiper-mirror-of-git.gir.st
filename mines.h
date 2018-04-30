@@ -2,6 +2,7 @@
 #define __MINES_H
 
 #define SHORTHELP "%s [OPTIONS] [FIELDSPEC]\n"
+#define FIELDHELP "FIELDSPEC: WxH[xM] (width 'x' height 'x' mines)\n"
 #define LONGHELP \
 	"OPTIONS:\n" \
 	"    -n(o flagging)\n" \
