@@ -131,7 +131,7 @@ struct minescheme symbols_doublewidth = {
 	.mine_wrongf = SGR(BOLD,"/"),
 	.mine_wrongq = SGR(BOLD,"\\"),
 
-	.emoticons = {":)", ":(", ":D", ":\033No"},
+	.emoticons = {":)", ":(", ":D", "\033(B:o\033(0"},
 
 	.border = {{"\033#6\x6c","\x71","\x6b"},
 	           {"\033#6\x78","    ","\x78"},
@@ -142,8 +142,7 @@ struct minescheme symbols_doublewidth = {
 	.cell_width = 1,
 	.init_seq = "\033P0;1;0;4;1;1{P" /*config for DRCS "P": 7x10,erase-all*/
 	            "??~^^^^/??N????\033\\" /* flag at '!' resembling ▕▀ */
-	            "\033(0\033*B\033+P"    /* G0=Graphics,G2=ASCII,G3="P" */
-	            "\x0f"                  /* invoke G0 (locking shift) */
+	            "\033(0\033+P\x0f" /*G0=Graphics,G3="P",lock charset to G0*/
 	            "\033[?3l",  /* disable 132 column mode (DECCOLM) */
 	.reset_seq = "\033(B"    /* reset to DEC Multinational Character Set */
 	             "\033[?3h", /* reenable DECCOLM (WARN: unconditionally!) */
