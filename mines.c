@@ -447,6 +447,8 @@ char* get_emoticon(void) {
 #define print_border(which, width) \
 	print_line(which) printm (width, BORDER(which,MIDDLE))
 void show_minefield (int mode) {
+	//TODO: in `-d' mode if f.w is odd we are 1 char short in the status line
+	//TODO: in `-d' mode we need to specify a charset to print lowercase (-> resize mode)
 	int dtime = difftime (time(NULL), g.t)*!!g.t;
 	int half_spaces = f.w*op.scheme->cell_width/2;
 	int left_spaces = MAX(0,half_spaces-7-(f.m-g.f>999));
@@ -458,8 +460,8 @@ void show_minefield (int mode) {
 	print_border(TOP, f.w);
 	print_line(STATUS) {
 		if (mode == RESIZEMODE) printf ("%-*s", 2*half_spaces,
-		  f.w>20?"Resize Mode: HJKL to resize, Enter to set":
-		  f.w>11?"Resize Mode: HJKL/Enter":"HJKL/Enter");
+		  f.w*CW>53?"Resize Mode: HJKL to resize, Enter to set, Q to abort":
+		  f.w*CW>25?"Resize Mode: HJKL/Enter/Q":"HJKL/Enter/Q");
 		else printf("[%03d%c]%*s%s%*s[%03d]",
 		  /* [ */ f.m - g.f, modechar[g.s], /* ] */
 		  left_spaces,"", get_emoticon(), right_spaces,"",
@@ -517,6 +519,8 @@ int get_neighbours (int line, int col, int reduced_mode) {
 
 void interactive_resize(void) {
 	unsigned char buf[3];
+	int old_w = f.w;
+	int old_h = f.h;
 	for(;;) {
 		screen_setup(1); /* clears the screen */
 		show_minefield (RESIZEMODE);
@@ -526,12 +530,20 @@ void interactive_resize(void) {
 
 		free_field(); /* must free before resizing! */
 		switch (getctrlseq(buf)) {
-		case 'h': f.w--; break;
-		case 'j': f.h++; break;
-		case 'k': f.h--; break;
-		case 'l': f.w++; break;
-		case 0xa: /* enter, fallthrough */
-		case 'q': return;
+		case CTRSEQ_CURSOR_LEFT: case 'h': f.w--; break;
+		case CTRSEQ_CURSOR_DOWN: case 'j': f.h++; break;
+		case CTRSEQ_CURSOR_UP:   case 'k': f.h--; break;
+		case CTRSEQ_CURSOR_RIGHT:case 'l': f.w++; break;
+		case 'w': f.w+=BIG_MOVE; break;
+		case 'b': f.w-=BIG_MOVE; break;
+		case 'u': f.h-=BIG_MOVE; break;
+		case 'd': f.h+=BIG_MOVE; break;
+		case 0xa: return; /* enter */
+		case 'q': /* abort */
+			f.w = old_w;
+			f.h = old_h;
+			screen_setup(1);
+			return;
 		}
 
 		clamp_fieldsize();
@@ -682,8 +694,11 @@ void clamp_fieldsize (void) {
 	struct winsize w;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
+	if (f.w < 1) f.w = 1;
+	if (f.h < 1) f.h = 1;
+
 	if (COL_OFFSET + f.w*CW + COL_OFFSET > w.ws_col)
-		f.w = w.ws_col/CW - (COL_OFFSET+COL_OFFSET);
+		f.w = (w.ws_col - COL_OFFSET - COL_OFFSET)/CW; //TODO: does not work in `-d' (in xterm)
 	if (LINE_OFFSET + f.h + LINES_AFTER > w.ws_row)
 		f.h = w.ws_row - (LINE_OFFSET+LINES_AFTER);
 	if (COL_OFFSET + f.w*CW > MOUSE_MAX)
