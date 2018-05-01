@@ -173,13 +173,14 @@ int minesviiper(void) {
 		case'\'': /* fallthrough */
 		case '`': jump_mark(); break;
 		case WRAPPER_EMOTICON:
-		case 'r': return GAME_NEW;
+		case 'r': timer_setup(0); return GAME_NEW;
 		case 'q': return GAME_QUIT;
 		case CTRL_'L':
 			screen_setup(1);
 			show_minefield (NORMAL);
 			break;
 		case CTRL_'R':
+			timer_setup(0);
 			interactive_resize();
 			return GAME_NEW;
 		case '\\':
@@ -209,7 +210,6 @@ int everything_opened (void) {
 }
 
 int wait_mouse_up (int l, int c) { /* TODO: should not take minefield-coords but absolute ones */
-	//TODO: make stomp radius visible while mouse is down instead of after mouse up
 	unsigned char mouse2[3];
 	int level = 1;
 	int l2, c2;
