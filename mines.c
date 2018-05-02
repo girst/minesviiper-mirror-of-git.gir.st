@@ -107,6 +107,10 @@ newgame:
 		case WRAPPER_EMOTICON:
 		case 'r': goto newgame;
 		case 'q': goto quit;
+		case CTRL_'L': //TODO: updates the timer (fix in show_minefield())
+			screen_setup(1);
+			show_minefield (SHOWMINES);
+			break;
 		case CTRL_'R':
 			interactive_resize();
 			goto newgame;
@@ -237,7 +241,7 @@ int wait_mouse_up (int l, int c) { /* TODO: should not take minefield-coords but
 	move_ph (1, field2screen_c (f.w/2)-1); print (get_emoticon());
 
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
-		redraw_cell (l, c, NORMAL);
+                redraw_cell (l, c, g.o?SHOWMINES:NORMAL);
 		show_stomp(0, l, c);
 	}
 	c2 = screen2field_c(mouse2[1]);
@@ -485,7 +489,7 @@ void show_stomp (int enable, int l, int c) {
 
 		}
 	} else {
-                AROUND(l, c) redraw_cell (ROW, COL, NORMAL);
+                AROUND(l, c) redraw_cell (ROW, COL, g.o?SHOWMINES:NORMAL);
 	}
 }
 
