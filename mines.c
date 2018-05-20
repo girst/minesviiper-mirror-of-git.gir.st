@@ -184,7 +184,12 @@ int minesviiper(void) {
 		case 'A': after(getch_wrapper(),'<'); break;
 		case WRAPPER_EMOTICON:
 		case 'r': timer_setup(0); return GAME_NEW;
-		case 'q': return GAME_QUIT;
+		case 'q':
+			move_ph (f.h-1+LINE_OFFSET+LINES_AFTER, 0);
+			printf ("quit game? [Y/n]");
+			if (getch_wrapper() != 'n') return GAME_QUIT;
+			redraw_cell (g.p[0], g.p[1], HIGHLIGHT);
+			break;
 		case CTRL_'L':
 			screen_setup(1);
 			show_minefield (NORMAL);
