@@ -22,9 +22,12 @@
 	"    o:    open/choord\n" \
 	"    i:    flag/unflag\n" \
 	"    space:modeful cursor (either open or flag)\n" \
-	"    a:    toggle mode for space (open/flag)\n" \
+	"    e:    toggle mode for space (open/flag)\n" \
 	"    mX:   set a mark for letter X\n" \
 	"    `X:   move to mark X (aliased to ')\n" \
+	"    f/F x:find forward/backward [012345678 ocf?]\n" \
+	"    t/T x:'til forward/backward [012345678 ocf?]\n" \
+	"    a/A x:after forward/backward [012345678 ocf?]\n" \
 	"    r:    start a new game\n" \
 	"    q:    quit\n"
 
@@ -67,6 +70,7 @@ void move_hi (int, int);
 void to_next_boundary (int, int, char);
 int find (int, char);
 void till (int, char);
+void after(int, char);
 int getch (unsigned char*);
 int getch_wrapper (void);
 int getctrlseq (unsigned char*);

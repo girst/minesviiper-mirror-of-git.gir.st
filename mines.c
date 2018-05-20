@@ -136,7 +136,7 @@ int minesviiper(void) {
 			if (g.s == MODE_FLAG)  goto flag_cell;
 			if (g.s == MODE_QUESM) goto quesm_cell;
 			break;
-		case 'a':
+		case 'e':
 			g.s = (g.s+1)%(op.mode+1);
 			show_minefield (g.c?SHOWMINES:NORMAL);
 			break;
@@ -180,6 +180,8 @@ int minesviiper(void) {
 		case 'F': find(getch_wrapper(), '<'); break;
 		case 't': till(getch_wrapper(), '>'); break;
 		case 'T': till(getch_wrapper(), '<'); break;
+		case 'a': after(getch_wrapper(),'>'); break;
+		case 'A': after(getch_wrapper(),'<'); break;
 		case WRAPPER_EMOTICON:
 		case 'r': timer_setup(0); return GAME_NEW;
 		case 'q': return GAME_QUIT;
@@ -447,6 +449,10 @@ int find (int what, char direction) {
 void till (int what, char direction) {
 	/* if we found what we were looking for move one cell back */
 	if (find (what, direction)) move_hi(g.p[0], g.p[1]-(direction-'='));
+}
+void after (int what, char direction) {
+	/* if we found what we were looking for move one more cell */
+	if (find (what, direction)) move_hi(g.p[0], g.p[1]+(direction-'='));
 }
 
 char* cell2schema (int l, int c, int mode) {

@@ -19,7 +19,7 @@ Complete documentation and screenshots can be found on the
 | `i`             | flag / unflag                                |
 | `o`             | open / chord                                 |
 | space           | modeful, either open or flag                 |
-| `a`             | toggle mode for space (open/flag)            |
+| `e`             | toggle mode for space (open/flag)            |
 | `r`             | restart game                                 |
 | Ctrl-L          | redraw screen                                |
 | `q`             | quit                                         |
