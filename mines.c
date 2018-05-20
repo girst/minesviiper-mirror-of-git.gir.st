@@ -395,7 +395,7 @@ void move_hi (int l, int c) {
 
 /* to_next_boundary(): move into the supplied direction until a change in open-
 state or flag-state is found and move there. falls back to BIG_MOVE. */
-#define FIND_NEXT(X, L, C, L1, C1, MAX, OP) do {\
+#define FIND_BOUND(X, L, C, L1, C1, MAX, OP) do {\
 	new_ ## X OP ## = BIG_MOVE;\
 	for (int i = X OP 1; i > 0 && i < f.MAX-1; i OP ## OP)\
 		if (((f.c[L ][C ].o<<2) + f.c[L ][C ].f) \
@@ -408,18 +408,18 @@ void to_next_boundary (int l, int c, char direction) {
 	int new_l = l;
 	int new_c = c;
 	switch (direction) {
-	case '>': FIND_NEXT(c, l, i, l, i+1, w, +); break;
-	case '<': FIND_NEXT(c, l, i, l, i-1, w, -); break;
-	case '^': FIND_NEXT(l, i, c, i-1, c, h, -); break;
-	case 'v': FIND_NEXT(l, i, c, i+1, c, h, +); break;
+	case '>': FIND_BOUND(c, l, i, l, i+1, w, +); break;
+	case '<': FIND_BOUND(c, l, i, l, i-1, w, -); break;
+	case '^': FIND_BOUND(l, i, c, i-1, c, h, -); break;
+	case 'v': FIND_BOUND(l, i, c, i+1, c, h, +); break;
 	}
 
 	move_hi (new_l, new_c);
 }
-#undef FIND_NEXT
+#undef FIND_BOUND
 
 #define CELL f.c[g.p[0]][c]
-#define FIND_WHAT(CONDITION, DIRECTION) do {\
+#define FIND_NEXT(CONDITION, DIRECTION) do {\
 	int plusminus = DIRECTION-'='; /* -1 if '<', 1 if '>' */ \
 	for (int c = g.p[1]+plusminus; c >= 0 && c < f.w; c+=plusminus) \
 		if (CONDITION) { \
@@ -434,16 +434,16 @@ int find (int what, char direction) {
 	case '0': case '1': case '2':
 	case '3': case '4': case '5':
 	case '6': case '7': case '8': /* numbers, opened */
-	                    FIND_WHAT(CELL.o && CELL.n == what-'0', direction);
-	case 'o':           FIND_WHAT(CELL.o, direction);       /* any opened */
-	case 'c':           FIND_WHAT(!CELL.o, direction);      /* any closed */
-	case 'f': case 'i': FIND_WHAT(CELL.f==FLAG, direction); /* is flagged */
-	case '?':           FIND_WHAT(CELL.f==QUESM, direction);/* questioned */
+	                    FIND_NEXT(CELL.o && CELL.n == what-'0', direction);
+	case 'o':           FIND_NEXT(CELL.o, direction);       /* any opened */
+	case 'c':           FIND_NEXT(!CELL.o, direction);      /* any closed */
+	case 'f': case 'i': FIND_NEXT(CELL.f==FLAG, direction); /* is flagged */
+	case 'q': case '?': FIND_NEXT(CELL.f==QUESM, direction);/* questioned */
 	}
 
 	return 0;
 }
-#undef FIND_WHAT
+#undef FIND_NEXT
 #undef CELL
 
 void till (int what, char direction) {

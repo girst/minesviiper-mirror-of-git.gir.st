@@ -25,9 +25,9 @@
 	"    e:    toggle mode for space (open/flag)\n" \
 	"    mX:   set a mark for letter X\n" \
 	"    `X:   move to mark X (aliased to ')\n" \
-	"    f/F x:find forward/backward [012345678 ocf?]\n" \
-	"    t/T x:'til forward/backward [012345678 ocf?]\n" \
-	"    a/A x:after forward/backward [012345678 ocf?]\n" \
+	"    f/F x:find forward/backward [012345678 ocfq]\n" \
+	"    t/T x:'til -\"-\n" \
+	"    a/A x:after -\"-\n" \
 	"    r:    start a new game\n" \
 	"    q:    quit\n"
 
