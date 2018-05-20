@@ -54,6 +54,7 @@ struct minescheme {
 	char* border[5][3];
 
 	int cell_width;
+	int display_width;
 	char* init_seq;
 	char* reset_seq;
 };
@@ -77,6 +78,7 @@ struct minescheme symbols_mono = {
 	           {"╚═","══","═╝"}},
 
 	.cell_width = 2,
+	.display_width = 2,
 };
 
 struct minescheme symbols_col1 = {
@@ -106,6 +108,7 @@ struct minescheme symbols_col1 = {
 	           {"╚═","══","═╝"}},
 
 	.cell_width = 2,
+	.display_width = 2,
 };
 
 struct minescheme symbols_doublewidth = {
@@ -140,6 +143,7 @@ struct minescheme symbols_doublewidth = {
 	           {"\033#6\x6d","\x71","\x6a"}},
 
 	.cell_width = 1,
+	.display_width = 2,
 	.init_seq = "\033P0;1;0;4;1;1{P" /*config for DRCS "P": 7x10,erase-all*/
 	            "??~^^^^/??N????\033\\" /* flag at '!' resembling ▕▀ */
 	            "\033(0\033*B\033+P"    /* G0=Graphics,G2=ASCII,G3="P" */
