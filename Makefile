@@ -17,7 +17,7 @@ define TESTS
 
 	echo -e '\n\033[7m>80:\033[0m'
 	for myFILE in *.c *.h
-	do sed 's/\t/        /g' < $$myFILE|grep -En --color=always '.{81}'|sed "s/^/\x1B[35m$$myFILE\x1B[36m:/"
+	do sed 's/\t/        /g' < $$myFILE|sed 's|//.*$$||'|grep -En --color=always '.{81}'|sed "s/^/\x1B[35m$$myFILE\x1B[36m:/"
 	done
 
 	echo -e '\n\033[7m-Wall:\033[0m'
