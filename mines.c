@@ -173,10 +173,10 @@ int minesviiper(void) {
 		case 'g': move_hi (0,         g.p[1]   ); break;
 		case 'G': move_hi (f.h-1,     g.p[1]   ); break;
 		case 'z': move_hi (f.h/2, f.w/2); break;
-		case 'm': set_mark(); break; //TODO: turn off SIGALRM while waiting for key
+		case 'm': set_mark(); break;
 		case'\'': /* fallthrough */
-		case '`': jump_mark(); break; //TODO: turn off SIGALRM while waiting for key
-		case 'f': find(getch_wrapper(), '>'); break; //TODO: turn off SIGALRM while waiting for key
+		case '`': jump_mark(); break;
+		case 'f': find(getch_wrapper(), '>'); break;
 		case 'F': find(getch_wrapper(), '<'); break;
 		case 't': till(getch_wrapper(), '>'); break;
 		case 'T': till(getch_wrapper(), '<'); break;
@@ -708,7 +708,9 @@ compatible with the ncurses implementation of same name */
 
 int getch_wrapper (void) {
 	unsigned char mouse[3];
-	int c = getch(mouse);
+	int c;
+	/*skip over ASCII_STX=0x02 that gets sent when returning from SIGALRM:*/
+	while ( (c = getch(mouse)) == 0x02);
 
 	if (c == CTRSEQ_MOUSE_LEFT || c == CTRSEQ_MOUSE_RIGHT) {
 		if (clicked_emoticon(mouse))
