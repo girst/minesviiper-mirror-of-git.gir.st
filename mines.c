@@ -237,7 +237,7 @@ int wait_mouse_up (int l, int c) { /* TODO: should not take minefield-coords but
 			/* ignore mouse wheel events: */
 			if (mouse2[0] & 0x40) continue;
 
-			else if (mouse2[0]&3 == 3) level--; /* release event */
+			else if((mouse2[0]&3) == 3) level--; /* release event */
 			else level++; /* another button pressed */
 		}
 	}
@@ -422,20 +422,21 @@ void to_next_boundary (int l, int c, char direction) {
 	for (int c = g.p[1]+plusminus; c >= 0 && c < f.w; c+=plusminus) \
 		if (CONDITION) { \
 			move_hi (g.p[0], c); \
-			return 1; \
+			return 1; /* NOTE: break didn't work */ \
 		} \
+		return 0; \
 	} while(0)
 int find (int what, char direction) {
 	switch (what) {
-	case ' ': what = '0'; /* numbers, opened; fallthrough */
+	case ' ': what = '0'; /* fallthrough */
 	case '0': case '1': case '2':
 	case '3': case '4': case '5':
-	case '6': case '7': case '8':
+	case '6': case '7': case '8': /* numbers, opened */
 	                    FIND_WHAT(CELL.o && CELL.n == what-'0', direction);
-	case 'f': case 'i': FIND_WHAT(CELL.f==FLAG, direction); /* is flagged */
 	case 'o':           FIND_WHAT(CELL.o, direction);       /* any opened */
-	case '?':           FIND_WHAT(CELL.f==QUESM, direction);/* questioned */
 	case 'c':           FIND_WHAT(!CELL.o, direction);      /* any closed */
+	case 'f': case 'i': FIND_WHAT(CELL.f==FLAG, direction); /* is flagged */
+	case '?':           FIND_WHAT(CELL.f==QUESM, direction);/* questioned */
 	}
 
 	return 0;
