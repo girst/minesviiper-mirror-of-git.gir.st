@@ -65,6 +65,8 @@ void fill_minefield (int, int);
 void move_ph (int, int);
 void move_hi (int, int);
 void to_next_boundary (int, int, char);
+int find (int, char);
+void till (int, char);
 int getch (unsigned char*);
 int getch_wrapper (void);
 int getctrlseq (unsigned char*);

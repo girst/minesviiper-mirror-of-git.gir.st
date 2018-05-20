@@ -173,9 +173,13 @@ int minesviiper(void) {
 		case 'g': move_hi (0,         g.p[1]   ); break;
 		case 'G': move_hi (f.h-1,     g.p[1]   ); break;
 		case 'z': move_hi (f.h/2, f.w/2); break;
-		case 'm': set_mark(); break;
+		case 'm': set_mark(); break; //TODO: turn off SIGALRM while waiting for key
 		case'\'': /* fallthrough */
-		case '`': jump_mark(); break;
+		case '`': jump_mark(); break; //TODO: turn off SIGALRM while waiting for key
+		case 'f': find(getch_wrapper(), '>'); break; //TODO: turn off SIGALRM while waiting for key
+		case 'F': find(getch_wrapper(), '<'); break;
+		case 't': till(getch_wrapper(), '>'); break;
+		case 'T': till(getch_wrapper(), '<'); break;
 		case WRAPPER_EMOTICON:
 		case 'r': timer_setup(0); return GAME_NEW;
 		case 'q': return GAME_QUIT;
@@ -411,6 +415,38 @@ void to_next_boundary (int l, int c, char direction) {
 	move_hi (new_l, new_c);
 }
 #undef FIND_NEXT
+
+#define CELL f.c[g.p[0]][c]
+#define FIND_WHAT(CONDITION, DIRECTION) do {\
+	int plusminus = DIRECTION-'='; /* -1 if '<', 1 if '>' */ \
+	for (int c = g.p[1]+plusminus; c >= 0 && c < f.w; c+=plusminus) \
+		if (CONDITION) { \
+			move_hi (g.p[0], c); \
+			return 1; \
+		} \
+	} while(0)
+int find (int what, char direction) {
+	switch (what) {
+	case ' ': what = '0'; /* numbers, opened; fallthrough */
+	case '0': case '1': case '2':
+	case '3': case '4': case '5':
+	case '6': case '7': case '8':
+	                    FIND_WHAT(CELL.o && CELL.n == what-'0', direction);
+	case 'f': case 'i': FIND_WHAT(CELL.f==FLAG, direction); /* is flagged */
+	case 'o':           FIND_WHAT(CELL.o, direction);       /* any opened */
+	case '?':           FIND_WHAT(CELL.f==QUESM, direction);/* questioned */
+	case 'c':           FIND_WHAT(!CELL.o, direction);      /* any closed */
+	}
+
+	return 0;
+}
+#undef FIND_WHAT
+#undef CELL
+
+void till (int what, char direction) {
+	/* if we found what we were looking for move one cell back */
+	if (find (what, direction)) move_hi(g.p[0], g.p[1]-(direction-'='));
+}
 
 char* cell2schema (int l, int c, int mode) {
 	struct minecell cell = f.c[l][c];
