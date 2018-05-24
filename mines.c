@@ -188,6 +188,8 @@ int minesviiper(void) {
 			move_ph (f.h-1+LINE_OFFSET+LINES_AFTER, 0);
 			printf ("quit game? [Y/n]");
 			if (getch_wrapper() != 'n') return GAME_QUIT;
+			move_ph (f.h-1+LINE_OFFSET+LINES_AFTER, 0);
+			printf("\033[2K"); fflush(stdout); /* clear line */
 			redraw_cell (g.p[0], g.p[1], HIGHLIGHT);
 			break;
 		case CTRL_'L':
