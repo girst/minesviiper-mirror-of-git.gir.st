@@ -101,7 +101,8 @@ newgame:
 	}
 
 	timer_setup(0); /* stop timer */
-	show_minefield (SHOWMINES);
+	int show_how = g.o==GAME_WON?SHOWFLAGS:SHOWMINES;
+	show_minefield (show_how);
 	for(;;) {
 		switch(getch_wrapper()) {
 		case WRAPPER_EMOTICON:
@@ -109,7 +110,7 @@ newgame:
 		case 'q': goto quit;
 		case CTRL_'L': //TODO: updates the timer (fix in show_minefield())
 			screen_setup(1);
-			show_minefield (SHOWMINES);
+			show_minefield (show_how);
 			break;
 		case CTRL_'R':
 			interactive_resize();
@@ -472,7 +473,11 @@ char* cell2schema (int l, int c, int mode) {
 		cell.m == DEATH_MINE      ? op.scheme->mine_death:
 		cell.o == CLOSED          ? op.scheme->field_closed:
 		/*.......................*/ op.scheme->number[f.c[l][c].n]);
-	 else return (
+	else if (mode == SHOWFLAGS) return (
+		/* on win (everything opened, only correct flags left) */
+		cell.m == STD_MINE        ? op.scheme->field_flagged:
+		/*.......................*/ op.scheme->number[f.c[l][c].n]);
+	else return (
 		cell.f == FLAG            ? op.scheme->field_flagged:
 		cell.f == QUESM           ? op.scheme->field_question:
 		cell.o == CLOSED          ? op.scheme->field_closed:
