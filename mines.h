@@ -7,8 +7,9 @@
 	"OPTIONS:\n" \
 	"    -n(o flagging)\n" \
 	"    -f(lagging)\n" \
-	"    -q(uestion marks)\n" \
-	"    -c(olored symbols)\n" \
+	"    -q(uestion marks; implies -f)\n" \
+	"    -b(land symbols)\n" \
+	"    -c(olorful symbols)\n" \
 	"    -d(ec charset symbols)\n" \
 	"FIELDSPEC:\n" \
 	"    WxH[xM] (width 'x' height 'x' mines)\n" \

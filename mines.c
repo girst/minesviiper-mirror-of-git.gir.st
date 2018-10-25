@@ -74,11 +74,12 @@ int main (int argc, char** argv) {
 
 	int optget;
 	opterr = 0; /* don't print message on unrecognized option */
-	while ((optget = getopt (argc, argv, "+hnfqcdx")) != -1) {
+	while ((optget = getopt (argc, argv, "+hnfqbcd")) != -1) {
 		switch (optget) {
 		case 'n': op.mode    = NOFLAG; break;
 		case 'f': op.mode    = FLAG; break; /*default*/
 		case 'q': op.mode    = QUESM; break; /*WARN:implicitly sets -f*/
+		case 'b': op.scheme  = &symbols_mono; break;
 		case 'c': op.scheme  = &symbols_col1; break;
 		case 'd': op.scheme  = &symbols_doublewidth; break;
 		case 'h':
@@ -98,13 +99,14 @@ int main (int argc, char** argv) {
 
 newgame:
 	screen_setup(1);
-	switch (minesviiper()) {
+	switch (g.o = minesviiper()) {
 	case GAME_NEW: goto newgame;
-	case GAME_WON: g.o = GAME_WON; break;
-	case GAME_LOST:g.o = GAME_LOST;break;
+	case GAME_WON: goto game_end;
+	case GAME_LOST:goto game_end;
 	case GAME_QUIT:goto quit;
 	}
 
+game_end:
 	timer_setup(0); /* stop timer */
 	int show_how = g.o==GAME_WON?SHOWFLAGS:SHOWMINES;
 	show_minefield (show_how);
@@ -113,7 +115,8 @@ newgame:
 		case WRAPPER_EMOTICON:
 		case 'r': goto newgame;
 		case 'q': goto quit;
-		case CTRL_'L': //TODO: updates the timer (fix in show_minefield())
+		case CTRL_'L':
+			/*WARN: updates the timer (would require fix in struct*/
 			screen_setup(1);
 			show_minefield (show_how);
 			break;
@@ -189,16 +192,6 @@ int minesviiper(void) {
 		case 'T': find(getch_wrapper(), '<',-1); break;
 		case 'a': find(getch_wrapper(), '>',+1); break;
 		case 'A': find(getch_wrapper(), '<',+1); break;
-#if 0
-		case 'H': /*<spacemode> left*/ //TODO
-		case 'J': /*<spacemode> down*/
-		case 'K': /*<spacemode> up*/
-		case 'L': /*<spacemode> right*/
-		case CTRL_'H': /*<spacemode> topright*/
-		case CTRL_'J': /*<spacemode> bottomright*/
-		case CTRL_'K': /*<spacemode> bottomleft*/
-		case CTRL_'L': /*<spacemode> topleft*/ break;
-#endif
 		case WRAPPER_EMOTICON:
 		case 'r': timer_setup(0); return GAME_NEW;
 		case ':':
@@ -540,8 +533,6 @@ char* get_emoticon(void) {
 #define print_border(which, width) \
 	print_line(which) printm (width, BORDER(which,MIDDLE))
 void show_minefield (int mode) {
-	//TODO: in `-d' mode if f.w is odd we are 1 char short in the status line
-	//TODO: in `-d' mode we need to specify a charset to print lowercase (-> resize mode)
 	int dtime = difftime (time(NULL), g.t)*!!g.t;
 	int half_spaces = f.w*op.scheme->cell_width/2;
 	int left_spaces = MAX(0,half_spaces-7-(f.m-g.f>999));
@@ -572,7 +563,6 @@ void show_stomp (int enable, int l, int c) {
 				if (AR_CELL.o == CLOSED && AR_CELL.f != FLAG)
 					redraw_cell (ROW, COL, HIGHLIGHT);
 			fflush(stdout); /* won't display without */
-
 		}
 	} else {
                 AROUND(l, c) redraw_cell (ROW, COL, g.o?SHOWMINES:NORMAL);
@@ -619,6 +609,7 @@ void interactive_resize(void) {
 		printf("%d x %d", f.w, f.h);
 		move_ph(LINE_BELOW, 0);
 		printf("Resize Mode: Enter to set, Q to abort");
+		//TODO: need escape seq. to print lowercase in `-d' mode!
 
 		free_field(); /* must free before resizing! */
 		switch (getctrlseq(buf)) {
