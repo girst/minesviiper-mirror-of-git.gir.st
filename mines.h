@@ -13,23 +13,25 @@
 	"FIELDSPEC:\n" \
 	"    WxH[xM] (width 'x' height 'x' mines)\n" \
 	"    defaults to 30x16x99; mines default to ~20%%\n" \
-	"\n" \
+	"\n"
+#define KEYHELP \
 	"Keybindings:\n" \
-	"    hjkl: move left/down/up/right\n" \
-	"    bduw: move to next boundary\n" \
-	"    ^Gg$: move to the left/bottom/top/right\n" \
-	"    z:    center cursor on minefield\n" \
-	"    o:    open/choord\n" \
-	"    i:    flag/unflag\n" \
+	"    hjkl :move left/down/up/right\n" \
+	"    bduw :move to next boundary\n" \
+	"    ^Gg$ :move to the left/bottom/top/right\n" \
+	"    z    :center cursor on minefield\n" \
+	"    o    :open/choord\n" \
+	"    i    :flag/unflag\n" \
 	"    space:modeful cursor (either open or flag)\n" \
-	"    e:    toggle mode for space (open/flag)\n" \
-	"    mX:   set a mark for letter X\n" \
-	"    `X:   move to mark X (aliased to ')\n" \
+	"    e    :toggle mode for space (open/flag)\n" \
+	"    mX   :set a mark for letter X\n" \
+	"    `X   :move to mark X (aliased to ')\n" \
 	"    f/F x:find forward/backward [012345678 ocfq]\n" \
 	"    t/T x:'til -\"-\n" \
 	"    a/A x:after -\"-\n" \
-	"    r:    start a new game\n" \
-	"    q:    quit\n"
+	"    r    :start a new game\n" \
+	"    :h   :help\n" \
+	"    :q   :quit\n"
 
 struct minefield {
 	struct minecell {
@@ -156,6 +158,11 @@ enum event {
 enum actor {
 	KEYBOARD,
 	MOUSE,
+};
+enum colon {
+	EX_INVALID,
+	EX_QUIT,
+	EX_HELP,
 };
 enum mine_types {
 	NO_MINE,

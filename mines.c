@@ -82,7 +82,7 @@ int main (int argc, char** argv) {
 		case 'd': op.scheme  = &symbols_doublewidth; break;
 		case 'h':
 		default: 
-			fprintf (stderr, SHORTHELP LONGHELP, argv[0]);
+			fprintf (stderr, SHORTHELP LONGHELP KEYHELP, argv[0]);
 			return !(optget=='h');
 		}
 	} if (optind < argc) { /* parse Fieldspec */
@@ -141,7 +141,7 @@ int minesviiper(void) {
 			if (g.s == MODE_FLAG)  goto flag_cell;
 			if (g.s == MODE_QUESM) goto quesm_cell;
 			break;
-		case 'e':
+		case 'e': //TODO: e should be endword; use 's'?
 			g.s = (g.s+1)%(op.mode+1);
 			show_minefield (g.c?SHOWMINES:NORMAL);
 			break;
@@ -191,20 +191,17 @@ int minesviiper(void) {
 		case 'r': timer_setup(0); return GAME_NEW;
 		case ':':
 			switch (ex_cmd()) {
-			case 'q': return GAME_QUIT;
+			case EX_QUIT: return GAME_QUIT;
+			case EX_HELP:
+				fprintf (stdout, KEYHELP);
+				break;
 			default:
-				fprintf (stdout, "\rinvalid command"); //stderr does not work?
+				printf ("\rinvalid command");
 				PAUSE_TIMER ungetc(getchar(), stdin);
-				printf("\033[2K"); //fflush(stdout);/*clear line*/
+				printf("\033[2K"); /* clear line */
 			}
 			break;
 		case 'q': //TODO: redefine `q' as macro functionality
-			move_ph (LINE_BELOW, 0);
-			printf ("quit game? [Y/n]");
-			if (getch_wrapper() != 'n') return GAME_QUIT;
-			move_ph (LINE_BELOW, 0);
-			printf("\033[2K"); fflush(stdout); /* clear line */
-			redraw_cell (g.p[0], g.p[1], HIGHLIGHT);
 			break;
 		case CTRL_'L':
 			screen_setup(1);
@@ -240,7 +237,7 @@ int everything_opened (void) {
 	return 1;
 }
 
-int wait_mouse_up (int l, int c) { /* TODO: should not take minefield-coords but absolute ones */
+int wait_mouse_up (int l, int c) {
 	unsigned char mouse2[3];
 	int level = 1;
 	int l2, c2;
@@ -357,22 +354,27 @@ int do_uncover (int* is_newgame, int actor) {
 }
 
 int ex_cmd(void) {
-	//TODO:currently returns the first letter entered, but should in the future return an enum value
 	char what[256];
-	timer_setup(0); /* timer spams ASCII STX (0x02) chars -- NOTE: maybe also 0xff? */
-	PAUSE_TIMER {
+	printf ("\033[?9l\033[?25h"); /* disable mouse, show cursor */
+	PAUSE_TIMER { /* timer spams ASCII STX (0x02) chars */
 		move_ph(LINE_BELOW, 0);
 		putchar(':'); /* prompt */
 
-		raw_mode(0); /* use cooked mode, so we get line editing for free */
+		raw_mode(0);/*use cooked mode, so we get line editing for free*/
 		scanf(" %s", what); //TODO: cancel on ^G, ESC, ^C, ...
-		getchar();//get 0x10 char left in buffer by scanf
+		getchar(); /* discard 0x10 char left in buffer by scanf */
 		raw_mode(1);
 
 		move_ph(LINE_BELOW, 0);
-		printf ("\033[0J"); //clear from here to the end of the screen
+		printf ("\033[0J"); /* clear to the end of the screen */
 	}
-	return what[0];
+	printf ("\033[?1000h\033[?25l"); /* enable mouse, hide cursor */
+
+	switch (what[0]) { //TODO: urgh.
+	case 'q': return EX_QUIT;
+	case 'h': return EX_HELP;
+	default:  return EX_INVALID;
+	}
 }
 void set_mark(void) {
 	int mark = tolower(getch_wrapper());
