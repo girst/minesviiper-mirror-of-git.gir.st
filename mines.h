@@ -86,6 +86,7 @@ void flag_square (int, int);
 void quesm_square (int, int);
 int choord_square (int, int);
 int do_uncover (int*, int);
+int ex_cmd(void);
 void set_mark(void);
 void jump_mark(void);
 void interactive_resize(void);

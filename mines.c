@@ -1,5 +1,5 @@
 /*******************************************************************************
- minesviiper 0.4
+ minesviiper 0.5
  By Tobias Girstmair, 2015 - 2018
 
  ./minesviiper 16x16x40
@@ -47,6 +47,7 @@
 #define BORDER(l, c) op.scheme->border[B_ ## l][B_ ## c]
 #define CW op.scheme->cell_width /* for brevity */
 #define HI_CELL f.c[g.p[0]][g.p[1]]
+#define LINE_BELOW LINE_OFFSET+f.h-1+LINES_AFTER
 #define CTRL_ 0x1F &
 
 #define AR_CELL f.c[ROW][COL] /* helper for AROUND() */
@@ -54,6 +55,9 @@
 	for (int ROW = MAX(l-1, 0); ROW <= MIN(l+1, f.h-1); ROW++) \
 		for (int COL = MAX(c-1, 0); COL <= MIN(c+1, f.w-1); COL++) \
 			if (!(ROW == l && COL == c)) /* skip itself */
+
+#define PAUSE_TIMER \
+	for (int _break=(timer_setup(0),1); _break; _break=0, timer_setup(g.t))
 
 struct minefield f;
 struct game g;
@@ -185,11 +189,20 @@ int minesviiper(void) {
 		case 'A': after(getch_wrapper(),'<'); break;
 		case WRAPPER_EMOTICON:
 		case 'r': timer_setup(0); return GAME_NEW;
-		case 'q':
-			move_ph (f.h-1+LINE_OFFSET+LINES_AFTER, 0);
+		case ':':
+			switch (ex_cmd()) {
+			case 'q': return GAME_QUIT;
+			default:
+				fprintf (stdout, "\rinvalid command"); //stderr does not work?
+				PAUSE_TIMER ungetc(getchar(), stdin);
+				printf("\033[2K"); //fflush(stdout);/*clear line*/
+			}
+			break;
+		case 'q': //TODO: redefine `q' as macro functionality
+			move_ph (LINE_BELOW, 0);
 			printf ("quit game? [Y/n]");
 			if (getch_wrapper() != 'n') return GAME_QUIT;
-			move_ph (f.h-1+LINE_OFFSET+LINES_AFTER, 0);
+			move_ph (LINE_BELOW, 0);
 			printf("\033[2K"); fflush(stdout); /* clear line */
 			redraw_cell (g.p[0], g.p[1], HIGHLIGHT);
 			break;
@@ -343,6 +356,24 @@ int do_uncover (int* is_newgame, int actor) {
 	return GAME_INPROGRESS;
 }
 
+int ex_cmd(void) {
+	//TODO:currently returns the first letter entered, but should in the future return an enum value
+	char what[256];
+	timer_setup(0); /* timer spams ASCII STX (0x02) chars -- NOTE: maybe also 0xff? */
+	PAUSE_TIMER {
+		move_ph(LINE_BELOW, 0);
+		putchar(':'); /* prompt */
+
+		raw_mode(0); /* use cooked mode, so we get line editing for free */
+		scanf(" %s", what); //TODO: cancel on ^G, ESC, ^C, ...
+		getchar();//get 0x10 char left in buffer by scanf
+		raw_mode(1);
+
+		move_ph(LINE_BELOW, 0);
+		printf ("\033[0J"); //clear from here to the end of the screen
+	}
+	return what[0];
+}
 void set_mark(void) {
 	int mark = tolower(getch_wrapper());
 	if (mark < 'a' || mark > 'z') return; /*out of bound*/
