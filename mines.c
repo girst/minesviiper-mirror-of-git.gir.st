@@ -192,6 +192,7 @@ int minesviiper(void) {
 		case 'T': find(getch_wrapper(), '<',-1); break;
 		case 'a': find(getch_wrapper(), '>',+1); break;
 		case 'A': find(getch_wrapper(), '<',+1); break;
+		//TODO: HJKL, ^H^J^K^L: <spacemode> up/down/left/right/45deg
 		case WRAPPER_EMOTICON:
 		case 'r': timer_setup(0); return GAME_NEW;
 		case ':':

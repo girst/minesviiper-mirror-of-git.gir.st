@@ -19,10 +19,12 @@ Complete documentation and screenshots can be found on the
 | `i`             | flag / unflag                                |
 | `o`             | open / chord                                 |
 | space           | modeful, either open or flag                 |
-| `e`             | toggle mode for space (open/flag)            |
+| `s`             | toggle mode for space (open/flag)            |
 | `r`             | restart game                                 |
 | Ctrl-L          | redraw screen                                |
-| `q`             | quit                                         |
+| `:h`            | show keybindings (Ctrl-L to hide)            |
+| `:r`            | resize playfield                             |
+| `:q`            | quit                                         |
 
 Use the left mouse button to open or chord a cell, and the right button to flag.
 
@@ -36,8 +38,9 @@ A new game can be started by clicking on the `:D` icon.
 | `-n`            | disable flagging                              |
 | `-f`            | enable flagging (default)                     |
 | `-q`            | enable question marks                         |
-| `-c`            | switch to the colored scheme                  |
-| `-d`            | switch to the DEC charset scheme              |
+| `-b`            | use the bland (monospace) scheme (default)    |
+| `-c`            | use the colored scheme                        |
+| `-d`            | use the DEC charset scheme                    |
 | *W*`x`*H*`x`*M* | Fieldspec, width \* height \* number of mines |
 
 ## Character Schemes
