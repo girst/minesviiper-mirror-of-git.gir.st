@@ -46,6 +46,7 @@
 #define EMOT(e) op.scheme->emoticons[EMOT_ ## e]
 #define BORDER(l, c) op.scheme->border[B_ ## l][B_ ## c]
 #define CW op.scheme->cell_width /* for brevity */
+#define DW op.scheme->display_width /* ditto. */
 #define HI_CELL f.c[g.p[0]][g.p[1]]
 #define LINE_BELOW LINE_OFFSET+f.h-1+LINES_AFTER
 #define CTRL_ 0x1F &
@@ -93,10 +94,10 @@ int main (int argc, char** argv) {
 	}
 
 	signal_setup();
-	screen_setup(1);
 	atexit (*quit);
 
 newgame:
+	screen_setup(1);
 	switch (minesviiper()) {
 	case GAME_NEW: goto newgame;
 	case GAME_WON: g.o = GAME_WON; break;
@@ -141,7 +142,7 @@ int minesviiper(void) {
 			if (g.s == MODE_FLAG)  goto flag_cell;
 			if (g.s == MODE_QUESM) goto quesm_cell;
 			break;
-		case 'e': //TODO: e should be endword; use 's'?
+		case 's':
 			g.s = (g.s+1)%(op.mode+1);
 			show_minefield (g.c?SHOWMINES:NORMAL);
 			break;
@@ -172,12 +173,14 @@ int minesviiper(void) {
 		case 'b': to_next_boundary (g.p[0], g.p[1], '<'); break;
 		case 'u': to_next_boundary (g.p[0], g.p[1], '^'); break;
 		case 'd': to_next_boundary (g.p[0], g.p[1], 'v'); break;
+		case 'e': to_next_boundary (g.p[0], g.p[1], '>');
+		          move_hi(g.p[0],g.p[1]-1); break; /* endword */
 		case '0': /* fallthrough */
-		case '^': move_hi (g.p[0],    0        ); break;
-		case '$': move_hi (g.p[0],    f.w-1    ); break;
-		case 'g': move_hi (0,         g.p[1]   ); break;
-		case 'G': move_hi (f.h-1,     g.p[1]   ); break;
-		case 'z': move_hi (f.h/2, f.w/2); break;
+		case '^': move_hi (g.p[0], 0     ); break;
+		case '$': move_hi (g.p[0], f.w-1 ); break;
+		case 'g': move_hi (0,      g.p[1]); break;
+		case 'G': move_hi (f.h-1,  g.p[1]); break;
+		case 'z': move_hi (f.h/2,  f.w/2 ); break;
 		case 'm': set_mark(); break;
 		case'\'': /* fallthrough */
 		case '`': jump_mark(); break;
@@ -187,14 +190,26 @@ int minesviiper(void) {
 		case 'T': till(getch_wrapper(), '<'); break;
 		case 'a': after(getch_wrapper(),'>'); break;
 		case 'A': after(getch_wrapper(),'<'); break;
+#if 0
+		case 'H': /*<spacemode> left*/ //TODO
+		case 'J': /*<spacemode> down*/
+		case 'K': /*<spacemode> up*/
+		case 'L': /*<spacemode> right*/
+		case CTRL_'H': /*<spacemode> topright*/
+		case CTRL_'J': /*<spacemode> bottomright*/
+		case CTRL_'K': /*<spacemode> bottomleft*/
+		case CTRL_'L': /*<spacemode> topleft*/ break;
+#endif
 		case WRAPPER_EMOTICON:
 		case 'r': timer_setup(0); return GAME_NEW;
 		case ':':
 			switch (ex_cmd()) {
 			case EX_QUIT: return GAME_QUIT;
-			case EX_HELP:
-				fprintf (stdout, KEYHELP);
-				break;
+			case EX_HELP: printf (KEYHELP); break;
+			case EX_RESZ:
+				timer_setup(0);
+				interactive_resize();
+				return GAME_NEW;
 			default:
 				printf ("\rinvalid command");
 				PAUSE_TIMER ungetc(getchar(), stdin);
@@ -207,10 +222,6 @@ int minesviiper(void) {
 			screen_setup(1);
 			show_minefield (NORMAL);
 			break;
-		case CTRL_'R':
-			timer_setup(0);
-			interactive_resize();
-			return GAME_NEW;
 		case '\\':
 			if (g.n == GAME_NEW) break; /* must open a cell first */
 			g.c = !g.c;
@@ -361,8 +372,7 @@ int ex_cmd(void) {
 		putchar(':'); /* prompt */
 
 		raw_mode(0);/*use cooked mode, so we get line editing for free*/
-		scanf(" %s", what); //TODO: cancel on ^G, ESC, ^C, ...
-		getchar(); /* discard 0x10 char left in buffer by scanf */
+		fgets(what, 256, stdin); //TODO: cancel on ^G, ESC, ^C, ...
 		raw_mode(1);
 
 		move_ph(LINE_BELOW, 0);
@@ -373,6 +383,7 @@ int ex_cmd(void) {
 	switch (what[0]) { //TODO: urgh.
 	case 'q': return EX_QUIT;
 	case 'h': return EX_HELP;
+	case 'r': return EX_RESZ;
 	default:  return EX_INVALID;
 	}
 }
@@ -551,10 +562,7 @@ void show_minefield (int mode) {
 
 	print_border(TOP, f.w);
 	print_line(STATUS) {
-		if (mode == RESIZEMODE) printf ("%-*s", 2*half_spaces,
-		  f.w*CW>53?"Resize Mode: HJKL to resize, Enter to set, Q to abort":
-		  f.w*CW>25?"Resize Mode: HJKL/Enter/Q":"HJKL/Enter/Q");
-		else printf("[%03d%c]%*s%s%*s[%03d]",
+		printf("[%03d%c]%*s%s%*s[%03d]",
 		  /* [ */ f.m - g.f, modechar[g.s], /* ] */
 		  left_spaces,"", get_emoticon(), right_spaces,"",
 		  /* [ */ dtime /* ] */);
@@ -619,6 +627,8 @@ void interactive_resize(void) {
 		/* show the new field size in the corner: */
 		move_ph(f.h+LINE_OFFSET-1,COL_OFFSET);
 		printf("%d x %d", f.w, f.h);
+		move_ph(LINE_BELOW, 0);
+		printf("Resize Mode: Enter to set, Q to abort");
 
 		free_field(); /* must free before resizing! */
 		switch (getctrlseq(buf)) {
@@ -788,11 +798,12 @@ void clamp_fieldsize (void) {
 	struct winsize w;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
-	if (f.w < 1) f.w = 1;
-	if (f.h < 1) f.h = 1;
+	/* seven is the minimum width of the status bar */
+	if (f.w < 7) f.w = 7;
+	if (f.h < 7) f.h = 7;
 
 	if (COL_OFFSET + f.w*CW + COL_OFFSET > w.ws_col)
-		f.w = (w.ws_col - COL_OFFSET - COL_OFFSET)/op.scheme->display_width;
+		f.w = (w.ws_col - COL_OFFSET - COL_OFFSET)/DW;
 	if (LINE_OFFSET + f.h + LINES_AFTER > w.ws_row)
 		f.h = w.ws_row - (LINE_OFFSET+LINES_AFTER);
 	if (COL_OFFSET + f.w*CW > MOUSE_MAX)

@@ -23,7 +23,7 @@
 	"    o    :open/choord\n" \
 	"    i    :flag/unflag\n" \
 	"    space:modeful cursor (either open or flag)\n" \
-	"    e    :toggle mode for space (open/flag)\n" \
+	"    s    :toggle mode for space (open/flag)\n" \
 	"    mX   :set a mark for letter X\n" \
 	"    `X   :move to mark X (aliased to ')\n" \
 	"    f/F x:find forward/backward [012345678 ocfq]\n" \
@@ -31,6 +31,7 @@
 	"    a/A x:after -\"-\n" \
 	"    r    :start a new game\n" \
 	"    :h   :help\n" \
+	"    :r   :resize\n" \
 	"    :q   :quit\n"
 
 struct minefield {
@@ -163,6 +164,7 @@ enum colon {
 	EX_INVALID,
 	EX_QUIT,
 	EX_HELP,
+	EX_RESZ,
 };
 enum mine_types {
 	NO_MINE,
