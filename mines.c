@@ -169,12 +169,11 @@ int minesviiper(void) {
 		case 'k': move_hi (g.p[0]-1, g.p[1]  ); break;
 		case CTRSEQ_CURSOR_RIGHT:
 		case 'l': move_hi (g.p[0],   g.p[1]+1); break;
-		case 'w': to_next_boundary (g.p[0], g.p[1], '>'); break;
-		case 'b': to_next_boundary (g.p[0], g.p[1], '<'); break;
-		case 'u': to_next_boundary (g.p[0], g.p[1], '^'); break;
-		case 'd': to_next_boundary (g.p[0], g.p[1], 'v'); break;
-		case 'e': to_next_boundary (g.p[0], g.p[1], '>');
-		          move_hi(g.p[0],g.p[1]-1); break; /* endword */
+		case 'w': to_next_boundary (g.p[0], g.p[1], '>', 1); break;
+		case 'b': to_next_boundary (g.p[0], g.p[1], '<', 1); break;
+		case 'u': to_next_boundary (g.p[0], g.p[1], '^', 1); break;
+		case 'd': to_next_boundary (g.p[0], g.p[1], 'v', 1); break;
+		case 'e': to_next_boundary (g.p[0], g.p[1], '>', 0); break;
 		case '0': /* fallthrough */
 		case '^': move_hi (g.p[0], 0     ); break;
 		case '$': move_hi (g.p[0], f.w-1 ); break;
@@ -184,12 +183,12 @@ int minesviiper(void) {
 		case 'm': set_mark(); break;
 		case'\'': /* fallthrough */
 		case '`': jump_mark(); break;
-		case 'f': find(getch_wrapper(), '>'); break;
-		case 'F': find(getch_wrapper(), '<'); break;
-		case 't': till(getch_wrapper(), '>'); break;
-		case 'T': till(getch_wrapper(), '<'); break;
-		case 'a': after(getch_wrapper(),'>'); break;
-		case 'A': after(getch_wrapper(),'<'); break;
+		case 'f': find(getch_wrapper(), '>', 0); break;
+		case 'F': find(getch_wrapper(), '<', 0); break;
+		case 't': find(getch_wrapper(), '>',-1); break;
+		case 'T': find(getch_wrapper(), '<',-1); break;
+		case 'a': find(getch_wrapper(), '>',+1); break;
+		case 'A': find(getch_wrapper(), '<',+1); break;
 #if 0
 		case 'H': /*<spacemode> left*/ //TODO
 		case 'J': /*<spacemode> down*/
@@ -452,11 +451,11 @@ state or flag-state is found and move there. falls back to BIG_MOVE. */
 	for (int i = X OP 1; i > 0 && i < f.MAX-1; i OP ## OP)\
 		if (((f.c[L ][C ].o<<2) + f.c[L ][C ].f) \
 		 != ((f.c[L1][C1].o<<2) + f.c[L1][C1].f)) {\
-			new_ ## X = i OP 1;\
+			new_ ## X = i OP advance;\
 			break;\
 		}\
 	} while(0)
-void to_next_boundary (int l, int c, char direction) {
+void to_next_boundary (int l, int c, char direction, int advance) {
 	int new_l = l;
 	int new_c = c;
 	switch (direction) {
@@ -475,12 +474,12 @@ void to_next_boundary (int l, int c, char direction) {
 	int plusminus = DIRECTION-'='; /* -1 if '<', 1 if '>' */ \
 	for (int c = g.p[1]+plusminus; c >= 0 && c < f.w; c+=plusminus) \
 		if (CONDITION) { \
-			move_hi (g.p[0], c); \
+			move_hi (g.p[0], c+(till_after*plusminus)); \
 			return 1; /* NOTE: break didn't work */ \
 		} \
 		return 0; \
 	} while(0)
-int find (int what, char direction) {
+int find (int what, char direction, int till_after) {
 	switch (what) {
 	case ' ': what = '0'; /* fallthrough */
 	case '0': case '1': case '2':
@@ -497,15 +496,6 @@ int find (int what, char direction) {
 }
 #undef FIND_NEXT
 #undef CELL
-
-void till (int what, char direction) {
-	/* if we found what we were looking for move one cell back */
-	if (find (what, direction)) move_hi(g.p[0], g.p[1]-(direction-'='));
-}
-void after (int what, char direction) {
-	/* if we found what we were looking for move one more cell */
-	if (find (what, direction)) move_hi(g.p[0], g.p[1]+(direction-'='));
-}
 
 char* cell2schema (int l, int c, int mode) {
 	struct minecell cell = f.c[l][c];
