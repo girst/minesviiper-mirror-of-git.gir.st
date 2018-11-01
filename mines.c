@@ -162,6 +162,7 @@ int minesviiper(void) {
 		flag_cell:
 		case CTRSEQ_MOUSE_RIGHT:
 		case 'i': flag_square (g.p[0], g.p[1]); break;
+		case 'p':if(choord_around(g.p[0],g.p[1]))return GAME_LOST;break;
 		quesm_cell:
 		case '?':quesm_square (g.p[0], g.p[1]); break;
 		case CTRSEQ_CURSOR_LEFT:
@@ -278,7 +279,6 @@ int wait_mouse_up (int l, int c) {
 }
 
 int choord_square (int line, int col) {
-	if (uncover_square (line, col)) return 1;
 	AROUND(line,col)
 		if (AR_CELL.f != FLAG) {
 			if (uncover_square (ROW, COL))
@@ -286,6 +286,15 @@ int choord_square (int line, int col) {
 		}
 
 	return 0;
+}
+
+int choord_around(int row, int col) {
+	AROUND(g.p[0], g.p[1]) {
+		if (AR_CELL.o == OPENED && get_neighbours (ROW, COL, 1) == 0) {
+			if (choord_square (ROW, COL)) return GAME_LOST;
+		}
+	}
+	return GAME_INPROGRESS;
 }
 
 int uncover_square (int l, int c) {
@@ -340,7 +349,7 @@ int do_uncover (int* is_newgame, int actor) {
 		timer_setup(1);
 	}
 
-	if (HI_CELL.f == FLAG  ) return GAME_INPROGRESS;
+	if (HI_CELL.f == FLAG  ) return GAME_INPROGRESS; //TODO: could choord?
 	if (HI_CELL.o == CLOSED) {
 		if (uncover_square (g.p[0], g.p[1])) return GAME_LOST;
 	} else if (get_neighbours (g.p[0], g.p[1], 1) == 0) {

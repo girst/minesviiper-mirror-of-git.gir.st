@@ -18,6 +18,7 @@ Complete documentation and screenshots can be found on the
 | `^`/`G`/`g`/`$` | move to the very left / bottom / top / right |
 | `i`             | flag / unflag                                |
 | `o`             | open / chord                                 |
+| `p`             | chord all open adjacent cells                |
 | space           | modeful, either open or flag                 |
 | `s`             | toggle mode for space (open/flag)            |
 | `r`             | restart game                                 |
