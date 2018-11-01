@@ -23,7 +23,6 @@
 	"    z    :center cursor on minefield\n" \
 	"    o    :open/choord\n" \
 	"    i    :flag/unflag\n" \
-	"    p    :choord around\n" \
 	"    space:modeful cursor (either open or flag)\n" \
 	"    s    :toggle mode for space (open/flag)\n" \
 	"    mX   :set a mark for letter X\n" \
@@ -88,7 +87,6 @@ int uncover_square (int, int);
 void flag_square (int, int);
 void quesm_square (int, int);
 int choord_square (int, int);
-int choord_around(int, int);
 int do_uncover (int*, int);
 int ex_cmd(void);
 void set_mark(void);

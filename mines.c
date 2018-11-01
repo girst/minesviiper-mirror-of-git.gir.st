@@ -162,7 +162,6 @@ int minesviiper(void) {
 		flag_cell:
 		case CTRSEQ_MOUSE_RIGHT:
 		case 'i': flag_square (g.p[0], g.p[1]); break;
-		case 'p':if(choord_around(g.p[0],g.p[1]))return GAME_LOST;break;
 		quesm_cell:
 		case '?':quesm_square (g.p[0], g.p[1]); break;
 		case CTRSEQ_CURSOR_LEFT:
@@ -199,7 +198,7 @@ int minesviiper(void) {
 		case ':':
 			switch (ex_cmd()) {
 			case EX_QUIT: return GAME_QUIT;
-			case EX_HELP: printf (KEYHELP); break;
+			case EX_HELP: printf (KEYHELP); break; //TODO: charset problems with vt220
 			case EX_RESZ:
 				timer_setup(0);
 				interactive_resize();
@@ -288,15 +287,6 @@ int choord_square (int line, int col) {
 	return 0;
 }
 
-int choord_around(int row, int col) {
-	AROUND(g.p[0], g.p[1]) {
-		if (AR_CELL.o == OPENED && get_neighbours (ROW, COL, 1) == 0) {
-			if (choord_square (ROW, COL)) return GAME_LOST;
-		}
-	}
-	return GAME_INPROGRESS;
-}
-
 int uncover_square (int l, int c) {
 	if (f.c[l][c].o == OPENED)
 		return 0; /* nothing to do */
@@ -349,7 +339,14 @@ int do_uncover (int* is_newgame, int actor) {
 		timer_setup(1);
 	}
 
-	if (HI_CELL.f == FLAG  ) return GAME_INPROGRESS; //TODO: could choord?
+#ifdef COORD_ON_FLAG
+	if (HI_CELL.f == FLAG  ) {
+		if (choord_square(g.p[0], g.p[1])) return GAME_LOST;
+		else return GAME_INPROGRESS;
+	}
+#else
+	if (HI_CELL.f == FLAG  ) return GAME_INPROGRESS;
+#endif
 	if (HI_CELL.o == CLOSED) {
 		if (uncover_square (g.p[0], g.p[1])) return GAME_LOST;
 	} else if (get_neighbours (g.p[0], g.p[1], 1) == 0) {
@@ -859,6 +856,11 @@ void signal_setup (void) {
 		exit(1);
 	}
 
+	if (sigaction(SIGCONT, &saction, NULL) < 0 ) {
+		perror ("SIGCONT");
+		exit (1);
+	}
+
 	if (sigaction(SIGINT, &saction, NULL) < 0 ) {
 		perror ("SIGINT");
 		exit (1);
@@ -873,23 +875,32 @@ void signal_handler (int signum) {
 		move_ph (1, f.w*CW-(CW%2)-3-(dtime>999));
 		printf ("[%03d]", g.t?dtime:0);
 		break;
+	case SIGCONT:
+		/* NOTE: will leave the VT220 in special graphics charset */
+		screen_setup(0);
+		screen_setup(1);
+		show_minefield (g.c?SHOWMINES:NORMAL);
+		break;
 	case SIGINT:
 		exit(128+SIGINT);
 	}
 }
 
 void screen_setup (int enable) {
+	static int sent_init;
 	if (enable) {
 		raw_mode(1);
 		printf ("\033[s\033[?47h"); /* save cursor, alternate screen */
 		printf ("\033[H\033[J"); /* reset cursor, clear screen */
 		printf ("\033[?1000h\033[?25l"); /* enable mouse, hide cursor */
-		print (op.scheme->init_seq); /* swich charset, if necessary */
+		if (!sent_init++) /* swich charset, if necessary and only once*/
+			print (op.scheme->init_seq);
 	} else {
 		print (op.scheme->reset_seq); /* reset charset, if necessary */
 		printf ("\033[?9l\033[?25h"); /* disable mouse, show cursor */
 		printf ("\033[?47l\033[u"); /* primary screen, restore cursor */
 		raw_mode(0);
+		sent_init = 0;
 	}
 }
 

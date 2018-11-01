@@ -144,8 +144,8 @@ struct minescheme symbols_doublewidth = {
 
 	.cell_width = 1,
 	.display_width = 2,
-	//TODO: after transmitting the DRCS the terminal gets unresponsive for a few seconds, causing the minefield to not be fully 
-	//drawn after a screen_setup()
+	/* NOTE: sending the DRCS makes the VT220 hang for a few seconds. Then
+	the input buffer will not be cleared to read the minefield afterwards */
 	.init_seq = "\033P0;1;0;4;1;1{P" /*config for DRCS "P": 7x10,erase-all*/
 	            "??~^^^^/??N????\033\\" /* flag at '!' resembling ▕▀ */
 	            "\033(0\033*B\033+P"    /* G0=Graphics,G2=ASCII,G3="P" */
