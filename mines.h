@@ -1,5 +1,5 @@
 #ifndef __MINES_H__
-#define __MINES_H
+#define __MINES_H__
 
 #define SHORTHELP "%s [OPTIONS] [FIELDSPEC]\n"
 #define FIELDHELP "FIELDSPEC: WxH[xM] (width 'x' height 'x' mines)\n"
