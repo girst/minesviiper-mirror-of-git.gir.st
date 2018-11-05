@@ -787,6 +787,7 @@ void clamp_fieldsize (void) {
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
 	/* seven is the minimum width of the status bar */
+	/* NOTE: min of status in DEC mode: 13 (WONTFIX) */
 	if (f.w < 7) f.w = 7;
 	if (f.h < 7) f.h = 7;
 
