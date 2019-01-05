@@ -911,7 +911,8 @@ void raw_mode(int enable) {
 	struct termios raw_term_mode;
 
 	if (enable) {
-		tcgetattr(STDIN_FILENO, &saved_term_mode);
+		if (saved_term_mode.c_lflag == 0)/*don't overwrite stored mode*/
+			tcgetattr(STDIN_FILENO, &saved_term_mode);
 		raw_term_mode = saved_term_mode;
 		raw_term_mode.c_lflag &= ~(ICANON | ECHO);
 		raw_term_mode.c_cc[VMIN] = 1 ;
