@@ -30,6 +30,7 @@
 	"    f/F x:find forward/backward [012345678 ocfq]\n" \
 	"    t/T x:'til -\"-\n" \
 	"    a/A x:after -\"-\n" \
+	"    !    :open with a bang! (find large cluster of zeros)\n" \
 	"    r    :start a new game\n" \
 	"    :h   :help\n" \
 	"    :r   :resize\n" \
@@ -88,6 +89,8 @@ void flag_square (int, int);
 void quesm_square (int, int);
 int choord_square (int, int);
 int do_uncover (int*, int);
+int grand_opening (int*);
+int assign_cluster (int, int, int, int*);
 int ex_cmd(void);
 void set_mark(void);
 void jump_mark(void);

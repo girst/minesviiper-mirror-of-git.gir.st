@@ -22,6 +22,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <termios.h>
@@ -193,6 +194,7 @@ int minesviiper(void) {
 		case 'a': find(getch_wrapper(), '>',+1); break;
 		case 'A': find(getch_wrapper(), '<',+1); break;
 		//TODO: HJKL, ^H^J^K^L: <spacemode> up/down/left/right/45deg
+		case '!': grand_opening(&(g.n)); break;
 		case WRAPPER_EMOTICON:
 		case 'r': timer_setup(0); return GAME_NEW;
 		case ':':
@@ -361,6 +363,69 @@ int do_uncover (int* is_newgame, int actor) {
 	if (everything_opened()) return GAME_WON;
 
 	return GAME_INPROGRESS;
+}
+
+#define for_each_cell(r, c) \
+	for (int r = 0; r < f.h; r++) for (int c = 0; c < f.w; c++)
+int grand_opening(int* is_newgame) {
+	/* Find the largest cluster of zero-cells and open it. This is a bad
+	implementation of a connected-component labelling algorithm and also
+	uses (gasp!) VLAs! */
+
+	if (*is_newgame == GAME_NEW) {
+		*is_newgame = GAME_INPROGRESS;
+		fill_minefield (-1, -1);
+		timer_setup(1);
+	} else return GAME_INPROGRESS; /* only allow this as the first move */
+
+	int clusters[f.h*f.w]; /* each 0-cell gets labelled with a cluster */
+	int cluster_id = 1;    /* number. connected cells get the same.    */
+	int largest = 1;       /* the largest cluster will then be opened. */
+	memset(clusters, 0, f.h*f.w * sizeof(int));
+
+	/* assign cluster numbers: */
+	for_each_cell(r, c) {
+		if (assign_cluster(r, c, cluster_id, clusters))
+			cluster_id++;
+	}
+
+	/* calculate cluster sizes: */
+	int id_size[cluster_id];
+	memset(id_size, 0, cluster_id * sizeof(int));
+	for_each_cell(r, c)
+		id_size[ clusters[r*f.w+c] ]++;
+
+	/* find largest cluster and open it: */
+	for (int i = 1; i < cluster_id; i++)
+		if (id_size[i] > id_size[largest])
+			largest = i;
+	for_each_cell(r, c) {
+		if (clusters[r*f.w+c] == largest) {
+			g.p[0] = r;
+			g.p[1] = c;
+			return do_uncover(is_newgame, KEYBOARD);
+		}
+	}
+
+	return GAME_INPROGRESS; /* that shouln't ever happen(TM) */
+}
+#undef for_each_cell
+int assign_cluster(int r, int c, int id, int *clusters) {
+	int tagged = 0;
+
+	if (clusters[r*f.w+c] > 0    /* already tagged    */
+	||  f.c[r][c].n       > 0   /* cell not empty    */
+	||  f.c[r][c].m            /* cell has mine     */
+	||  f.c[r][c].o         ) /* cell already open */
+		return tagged;
+
+	/* else, tag the cell and its neighbours */
+
+	clusters[r*f.w+c] = id; tagged++;
+	AROUND(r, c)
+		tagged+= assign_cluster(ROW, COL, id, clusters);
+
+	return tagged;
 }
 
 int ex_cmd(void) {
