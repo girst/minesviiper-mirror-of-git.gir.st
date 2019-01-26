@@ -165,6 +165,7 @@ enum actor {
 enum colon {
 	EX_INVALID,
 	EX_QUIT,
+	EX_NEW,
 	EX_HELP,
 	EX_RESZ,
 };

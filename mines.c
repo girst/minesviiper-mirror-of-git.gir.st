@@ -173,6 +173,7 @@ int minesviiper(void) {
 		case 'k': move_hi (g.p[0]-1, g.p[1]  ); break;
 		case CTRSEQ_CURSOR_RIGHT:
 		case 'l': move_hi (g.p[0],   g.p[1]+1); break;
+		//TODO: W, B, U, D (bigword: only consider open/close state)
 		case 'w': to_next_boundary (g.p[0], g.p[1], '>', 1); break;
 		case 'b': to_next_boundary (g.p[0], g.p[1], '<', 1); break;
 		case 'u': to_next_boundary (g.p[0], g.p[1], '^', 1); break;
@@ -201,6 +202,7 @@ int minesviiper(void) {
 		case ':':
 			switch (ex_cmd()) {
 			case EX_QUIT: return GAME_QUIT;
+			case EX_NEW:  return GAME_NEW;
 			case EX_HELP: printf (KEYHELP); break; //TODO: charset problems with vt220
 			case EX_RESZ:
 				timer_setup(0);
@@ -253,6 +255,8 @@ int wait_mouse_up (int l, int c) {
 	move_ph (1, field2screen_c (f.w/2)-1); print (EMOT(OHH));
 
 	if (!(l < 0 || l >= f.h || c < 0 || c >= f.w)) {
+		/* remove keyboard's cursor (if it's there): */
+		redraw_cell (g.p[0], g.p[1], NORMAL);
 		/* show a pushed-in button if cursor is on minefield */
 		redraw_cell (l, c, HIGHLIGHT);
 
@@ -431,7 +435,7 @@ int assign_cluster(int r, int c, int id, int *clusters) {
 
 int ex_cmd(void) {
 	char what[256];
-	printf ("\033[?9l\033[?25h"); /* disable mouse, show cursor */
+	printf ("\033[?1000l\033[?25h"); /* disable mouse, show cursor */
 	PAUSE_TIMER { /* timer spams ASCII STX (0x02) chars */
 		move_ph(LINE_BELOW, 0);
 		putchar(':'); /* prompt */
@@ -447,6 +451,7 @@ int ex_cmd(void) {
 
 	switch (what[0]) { //TODO: urgh.
 	case 'q': return EX_QUIT;
+	case 'n': return EX_NEW;
 	case 'h': return EX_HELP;
 	case 'r': return EX_RESZ;
 	default:  return EX_INVALID;
@@ -923,6 +928,11 @@ void signal_setup (void) {
 		exit(1);
 	}
 
+	if (sigaction(SIGTSTP, &saction, NULL) < 0 ) {
+		perror ("SIGTSTP");
+		exit (1);
+	}
+
 	if (sigaction(SIGCONT, &saction, NULL) < 0 ) {
 		perror ("SIGCONT");
 		exit (1);
@@ -942,9 +952,13 @@ void signal_handler (int signum) {
 		move_ph (1, f.w*CW-(CW%2)-3-(dtime>999));
 		printf ("[%03d]", g.t?dtime:0);
 		break;
+	case SIGTSTP: /* interactive stop (C-z) */
+		screen_setup(0); fflush(stdout);
+		signal(SIGTSTP, SIG_DFL); /* NOTE: assumes SysV semantics! */
+		raise(SIGTSTP);
+		break;
 	case SIGCONT:
 		/* NOTE: will leave the VT220 in special graphics charset */
-		screen_setup(0);
 		screen_setup(1);
 		show_minefield (g.c?SHOWMINES:NORMAL);
 		break;
@@ -964,7 +978,7 @@ void screen_setup (int enable) {
 			print (op.scheme->init_seq);
 	} else {
 		print (op.scheme->reset_seq); /* reset charset, if necessary */
-		printf ("\033[?9l\033[?25h"); /* disable mouse, show cursor */
+		printf ("\033[?1000l\033[?25h");/* disable mouse, show cursor */
 		printf ("\033[?47l\033[u"); /* primary screen, restore cursor */
 		raw_mode(0);
 		sent_init = 0;
