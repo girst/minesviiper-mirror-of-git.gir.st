@@ -1,28 +1,23 @@
-.PHONY: all clean run test
-all: 2017mines
+.PHONY: all clean
 
-2017mines: mines.c mines.h schemes.h
-	gcc mines.c -o 2017mines
+CFLAGS := -Wall -Werror -Wextra -pedantic
 
-run: 2017mines
-	./2017mines
+all: mines
+
+mines: mines.c mines.h schemes.h
+	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm -f 2017mines
+	rm -f mines
 
-define TESTS
-	echo -e '\033[7mTODOs:\033[0m'
-	grep -ni --color=always 'xxx\|todo\|[^:]\/\/' *.c *.h
+.PHONY: test_todo test_long test
+test_todo:
+	@echo -e '\033[7mTODOs:\033[0m'
+	@grep -ni --color=always 'xxx\|todo\|[^:]\/\/' *.c *.h
 	# grep -ni --color=always 'note\|warn' *.c *.h
 
-	echo -e '\n\033[7m>80:\033[0m'
-	for myFILE in *.c *.h
-	do sed 's/\t/        /g' < $$myFILE|sed 's|//.*$$||'|grep -En --color=always '.{81}'|sed "s/^/\x1B[35m$$myFILE\x1B[36m:/"
-	done
+test_long:
+	@echo -e '\n\033[7m>80:\033[0m'
+	@for myFILE in *.c *.h; do sed 's/\t/        /g' < $$myFILE|grep -En --color=always '.{81}'|sed "s/^/\x1B[35m$$myFILE\x1B[36m:/"; done
 
-	echo -e '\n\033[7m-Wall:\033[0m'
-	gcc mines.c -o 2017mines -Wall -Werror -Wextra -pedantic -fdiagnostics-color=always
-endef
-export TESTS
-test:
-	bash -c "$$TESTS" 2>&1| less --RAW-CONTROL-CHARS --chop-long-lines
+test: test_todo test_long
