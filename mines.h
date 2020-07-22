@@ -31,7 +31,7 @@
 	"    t/T x:'til -\"-\n" \
 	"    a/A x:after -\"-\n" \
 	"    !    :open with a bang! (find large cluster of zeros)\n" \
-	"    r    :start a new game\n" \
+	"    :n   :start a new game\n" \
 	"    :h   :help\n" \
 	"    :r   :resize\n" \
 	"    :q   :quit\n"

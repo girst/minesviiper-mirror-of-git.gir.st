@@ -198,11 +198,10 @@ int minesviiper(void) {
 		//TODO: ;, (repeat last find/till/after)
 		case '!': grand_opening(&(g.n)); break;
 		case WRAPPER_EMOTICON:
-		case 'r': timer_setup(0); return GAME_NEW;
 		case ':':
 			switch (ex_cmd()) {
 			case EX_QUIT: return GAME_QUIT;
-			case EX_NEW:  return GAME_NEW;
+			case EX_NEW:  timer_setup(0); return GAME_NEW;
 			case EX_HELP: printf (KEYHELP); break; //TODO: charset problems with vt220
 			case EX_RESZ:
 				timer_setup(0);

@@ -20,8 +20,8 @@ Complete documentation and screenshots can be found on the
 | `o`             | open / chord                                 |
 | space           | modeful, either open or flag                 |
 | `s`             | toggle mode for space (open/flag)            |
-| `r`             | restart game                                 |
 | Ctrl-L          | redraw screen                                |
+| `:n`            | new game                                     |
 | `:h`            | show keybindings (Ctrl-L to hide)            |
 | `:r`            | resize playfield                             |
 | `:q`            | quit                                         |
