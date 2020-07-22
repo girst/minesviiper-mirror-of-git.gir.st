@@ -174,11 +174,11 @@ int minesviiper(void) {
 		case CTRSEQ_CURSOR_RIGHT:
 		case 'l': move_hi (g.p[0],   g.p[1]+1); break;
 		//TODO: W, B, U, D (bigword: only consider open/close state)
-		case 'w': to_next_boundary (g.p[0], g.p[1], '>', 1); break;
-		case 'b': to_next_boundary (g.p[0], g.p[1], '<', 1); break;
-		case 'u': to_next_boundary (g.p[0], g.p[1], '^', 1); break;
-		case 'd': to_next_boundary (g.p[0], g.p[1], 'v', 1); break;
-		case 'e': to_next_boundary (g.p[0], g.p[1], '>', 0); break;
+		case 'w': to_next_boundary (g.p[0], g.p[1], '>'); break;
+		case 'b': to_next_boundary (g.p[0], g.p[1], '<'); break;
+		case 'u': to_next_boundary (g.p[0], g.p[1], '^'); break;
+		case 'd': to_next_boundary (g.p[0], g.p[1], 'v'); break;
+		case 'e': to_next_boundary (g.p[0], g.p[1], '>'); break;
 		case '0': /* fallthrough */
 		case '^': move_hi (g.p[0], 0     ); break;
 		case '$': move_hi (g.p[0], f.w-1 ); break;
@@ -516,17 +516,18 @@ void move_hi (int l, int c) {
 }
 
 /* to_next_boundary(): move into the supplied direction until a change in open-
-state or flag-state is found and move there. falls back to BIG_MOVE. */
+state or flag-state is found and move there. prefer landing on a closed cell by
+advancing once more when landing on an opened cell. falls back to BIG_MOVE. */
 #define FIND_BOUND(X, L, C, L1, C1, MAX, OP) do {\
 	new_ ## X OP ## = BIG_MOVE;\
 	for (int i = X OP 1; i > 0 && i < f.MAX-1; i OP ## OP)\
 		if (((f.c[L ][C ].o<<2) + f.c[L ][C ].f) \
 		 != ((f.c[L1][C1].o<<2) + f.c[L1][C1].f)) {\
-			new_ ## X = i OP advance;\
+			new_ ## X = i OP !f.c[L1][C1].o;\
 			break;\
 		}\
 	} while(0)
-void to_next_boundary (int l, int c, char direction, int advance) {
+void to_next_boundary (int l, int c, char direction) {
 	int new_l = l;
 	int new_c = c;
 	switch (direction) {

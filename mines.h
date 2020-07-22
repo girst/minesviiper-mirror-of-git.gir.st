@@ -18,7 +18,7 @@
 #define KEYHELP \
 	"Keybindings:\n" \
 	"    hjkl :move left/down/up/right\n" \
-	"    bduw :move to next boundary\n" \
+	"    bduw :move to next boundary (landing on closed cell)\n" \
 	"    ^Gg$ :move to the left/bottom/top/right\n" \
 	"    z    :center cursor on minefield\n" \
 	"    o    :open/choord\n" \
@@ -72,7 +72,7 @@ int minesviiper(void);
 void fill_minefield (int, int);
 void move_ph (int, int);
 void move_hi (int, int);
-void to_next_boundary (int, int, char, int);
+void to_next_boundary (int, int, char);
 int find (int, char, int);
 int getch (unsigned char*);
 int getch_wrapper (void);
