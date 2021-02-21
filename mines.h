@@ -55,7 +55,6 @@ struct game {
 	int s; /* space mode */
 	int o; /* mode */
 	int n; /* new game? */
-	int c; /* cheat mode? */
 	struct markers {
 		int s; /* set? */
 		int l; /* line */
@@ -82,7 +81,7 @@ int wait_mouse_up (int, int);
 void redraw_cell (int, int, int);
 void show_minefield (int);
 void show_stomp (int, int, int);
-void wait_stomp (void);
+void wait_keypress (int);
 int get_neighbours (int, int, int);
 int uncover_square (int, int);
 void flag_square (int, int);

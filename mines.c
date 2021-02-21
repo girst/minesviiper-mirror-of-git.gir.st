@@ -148,7 +148,7 @@ int minesviiper(void) {
 			break;
 		case 's':
 			g.s = (g.s+1)%(op.mode+1);
-			show_minefield (g.c?SHOWMINES:NORMAL);
+			show_minefield (NORMAL);
 			break;
 		case CTRSEQ_MOUSE_LEFT:
 			actor = MOUSE;
@@ -221,8 +221,9 @@ int minesviiper(void) {
 			break;
 		case '\\':
 			if (g.n == GAME_NEW) break; /* must open a cell first */
-			g.c = !g.c;
-			show_minefield (g.c?SHOWMINES:NORMAL);
+			show_minefield (SHOWMINES);
+			wait_keypress(400);
+			show_minefield (NORMAL);
 			break;
 		}
 	}
@@ -360,7 +361,7 @@ int do_uncover (int* is_newgame, int actor) {
 	} else if (actor != MOUSE) {
 		show_stomp(1, g.p[0], g.p[1]);
 
-		wait_stomp();
+		wait_keypress(STOMP_TIMEOUT);
 
 		show_stomp(0, g.p[0], g.p[1]);
 	}
@@ -647,7 +648,7 @@ void show_stomp (int enable, int l, int c) {
 	}
 }
 
-void wait_stomp (void) {
+void wait_keypress (int timeout) {
 	/* block SIGALRM, otherwise poll gets cancelled by the timer: */
 	sigset_t sig;
 	sigemptyset (&sig);
@@ -657,7 +658,7 @@ void wait_stomp (void) {
 	/* wait for timout or keypress: */
 	struct pollfd fds;
 	fds.fd = 0; fds.events = POLLIN;
-	poll(&fds, 1, STOMP_TIMEOUT);
+	poll(&fds, 1, timeout);
 
 	/* restore signal mask: */
 	sigprocmask (SIG_UNBLOCK, &sig, NULL);
@@ -960,7 +961,7 @@ void signal_handler (int signum) {
 	case SIGCONT:
 		/* NOTE: will leave the VT220 in special graphics charset */
 		screen_setup(1);
-		show_minefield (g.c?SHOWMINES:NORMAL);
+		show_minefield (NORMAL);
 		break;
 	case SIGINT:
 		exit(128+SIGINT);
