@@ -549,8 +549,8 @@ void to_next_boundary (int l, int c, char direction) {
 			move_hi (g.p[0], c+(till_after*plusminus)); \
 			return 1; /* NOTE: break didn't work */ \
 		} \
-		return 0; \
-	} while(0)
+	return 0; \
+} while(0)
 int find (int what, char direction, int till_after) {
 	switch (what) {
 	case ' ': what = '0'; /* fallthrough */
