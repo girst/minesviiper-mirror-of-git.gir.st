@@ -284,6 +284,13 @@ int wait_mouse_up (int l, int c) {
 	return ((l2 == l) && (c2 == c));
 }
 
+void flagall_square (int line, int col) {
+	AROUND(line,col)
+		if (AR_CELL.f != FLAG) {
+			flag_square(ROW, COL);
+		}
+}
+
 int choord_square (int line, int col) {
 	AROUND(line,col)
 		if (AR_CELL.f != FLAG) {
@@ -358,6 +365,10 @@ int do_uncover (int* is_newgame, int actor) {
 		if (uncover_square (g.p[0], g.p[1])) return GAME_LOST;
 	} else if (get_neighbours (g.p[0], g.p[1], 1) == 0) {
 		if (choord_square (g.p[0], g.p[1])) return GAME_LOST;
+#ifdef FLAGALL_ON_CHOORD
+	} else if (HI_CELL.n == closed_neighbours(g.p[0], g.p[1])) {
+		flagall_square(g.p[0], g.p[1]);
+#endif
 	} else if (actor != MOUSE) {
 		show_stomp(1, g.p[0], g.p[1]);
 
@@ -672,6 +683,16 @@ int get_neighbours (int line, int col, int reduced_mode) {
 	AROUND(line, col) {
 		count += !!AR_CELL.m;
 		count -= reduced_mode * AR_CELL.f==FLAG;
+	}
+	return count;
+}
+
+int closed_neighbours (int line, int col) {
+	/* counts closed cells surrounding a square */
+
+	int count = 0;
+	AROUND(line, col) {
+		count += !AR_CELL.o;
 	}
 	return count;
 }
